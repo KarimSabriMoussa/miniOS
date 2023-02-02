@@ -4,10 +4,15 @@
 #include "shellmemory.h"
 #include "shell.h"
 
-int MAX_ARGS_SIZE = 3;
+int MAX_ARGS_SIZE = 10;
 
-int badcommand(){
-	printf("%s\n", "Unknown Command");
+int badcommand(int code){
+	if(code == 1){
+		printf("%s\n", "Bad Command: Too many tokens");
+	}else{	
+		printf("%s\n", "Unknown Command");
+	}
+
 	return 1;
 }
 
@@ -19,7 +24,7 @@ int badcommandFileDoesNotExist(){
 
 int help();
 int quit();
-int set(char* var, char* value);
+int set(char* var, char* value[],int args_size);
 int print(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
@@ -29,7 +34,7 @@ int interpreter(char* command_args[], int args_size){
 	int i;
 
 	if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
-		return badcommand();
+		return badcommand(0);
 	}
 
 	for ( i=0; i<args_size; i++){ //strip spaces new line etc
@@ -38,38 +43,39 @@ int interpreter(char* command_args[], int args_size){
 
 	if (strcmp(command_args[0], "help")==0){
 	    //help
-	    if (args_size != 1) return badcommand();
+	    if (args_size != 1) return badcommand(0);
 	    return help();
 	
 	} else if (strcmp(command_args[0], "quit")==0) {
 		//quit
-		if (args_size != 1) return badcommand();
+		if (args_size != 1) return badcommand(0);
 		return quit();
 
 	} else if (strcmp(command_args[0], "set")==0) {
 		//set
-		if (args_size != 3) return badcommand();	
-		return set(command_args[1], command_args[2]);
+		if (args_size < 3) return badcommand(0);
+		if (args_size > 7) return badcommand(1);	
+		return set(command_args[1], command_args, args_size);
 	
 	} else if (strcmp(command_args[0], "print")==0) {
-		if (args_size != 2) return badcommand();
+		if (args_size != 2) return badcommand(0);
 		return print(command_args[1]);
 	
 	} else if (strcmp(command_args[0], "run")==0) {
-		if (args_size != 2) return badcommand();
+		if (args_size != 2) return badcommand(0);
 		return run(command_args[1]);
 	
-	} else return badcommand();
+	} else return badcommand(0);
 }
 
 int help(){
 
-	char help_string[] = "COMMAND			DESCRIPTION\n \
-help			Displays all the commands\n \
-quit			Exits / terminates the shell with “Bye!”\n \
-set VAR STRING		Assigns a value to shell memory\n \
-print VAR		Displays the STRING assigned to VAR\n \
-run SCRIPT.TXT		Executes the file SCRIPT.TXT\n ";
+	char help_string[] = "COMMAND\t\t\tDESCRIPTION\n \
+help\t\t\tDisplays all the commands\n \
+quit\t\t\tExits / terminates the shell with “Bye!”\n \
+set VAR STRING\t\tAssigns a value to shell memory\n \
+print VAR\t\tDisplays the STRING assigned to VAR\n \
+run SCRIPT.TXT\t\tExecutes the file SCRIPT.TXT\n ";
 	printf("%s\n", help_string);
 	return 0;
 }
@@ -79,13 +85,21 @@ int quit(){
 	exit(0);
 }
 
-int set(char* var, char* value){
+int set(char* var, char* command_args[], int args_size){
 	char *link = "=";
 	char buffer[1000];
+	char *delimeter = " ";
+	char value[500];
+
 	strcpy(buffer, var);
 	strcat(buffer, link);
-	strcat(buffer, value);
+	strcat(buffer, value);	
 
+	strcpy(value,"");
+	for(int i = 2;i<args_size;i++){
+		strcat(value,command_args[i]);
+		strcat(value, delimeter);
+	}
 	mem_set_value(var, value);
 
 	return 0;
