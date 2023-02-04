@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
+#include <dirent.h> 
 #include "shellmemory.h"
 #include "shell.h"
 
@@ -22,6 +23,7 @@ int quit();
 int set(char* var, char* value);
 int print(char* var);
 int echo(char* var);
+int my_ls();
 int run(char* script);
 int badcommandFileDoesNotExist();
 
@@ -63,6 +65,10 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "echo")==0) {
 		if (args_size != 2) return badcommand();
 		return echo(command_args[1]);
+	
+	} else if (strcmp(command_args[0], "my_ls")==0) {
+		if (args_size != 1) return badcommand();
+		return my_ls();
 	
 	} else return badcommand();
 }
@@ -109,6 +115,46 @@ int echo(char* var){
 		} else printf("\n");
 	} else printf("%s\n", var);
 	
+	return 0;
+}
+
+int my_ls(){
+	DIR *directory;
+	struct dirent *entry;
+	char **direct;
+	char *temp;
+
+	directory = opendir(".");
+
+	if (directory == NULL) {
+		printf("Error opening the directory.\n");
+		return 1;
+	}
+
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0)
+			printf("%s\n", entry->d_name);
+	}
+
+	// while ((entry = readdir(directory)) != NULL) {
+	// 	direct++ = entry->d_name;
+	// }
+
+	// for(i=0;i<100;i++) {
+    // 	for(j=i+1;j<100;j++) {
+	// 		if(strcmp(direct[i],direct[j])>0){
+	// 			strcpy(temp,dirct[i]);
+	// 			strcpy(direct[i],direct[j]);
+	// 			strcpy(direct[j],temp);
+	// 		}
+	// 	}
+	// }
+
+	if (closedir(directory) == -1) {
+		printf("Error closing the directory.\n");
+		return 1;
+	}
+
 	return 0;
 }
 
