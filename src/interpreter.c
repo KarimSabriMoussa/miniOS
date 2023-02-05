@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
-#include<ctype.h>
+#include <ctype.h>
+#include <unistd.h>
 #include <errno.h>
 #include "shellmemory.h"
 #include "shell.h"
@@ -11,9 +12,11 @@ int MAX_ARGS_SIZE = 10;
 int badcommand(int code){
 	if(code == 1){
 		printf("%s\n", "Bad Command: Too many tokens");
-	}else if(code == 2){
+	} else if(code == 2){
 		printf("%s\n", "Bad Command: filename must be alphanumeric");
-	}else{	
+	} else if(code == 3){
+		printf("%s\n", "Bad Command: my_cd");
+	} else{	
 		printf("%s\n", "Unknown Command");
 	}
 
@@ -33,6 +36,7 @@ int print(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
+int cd(char* dir);
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -73,6 +77,9 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "my_touch")==0){
 		if(args_size != 2) return badcommand(0);
 		return touch(command_args[1]);
+	} else if (strcmp(command_args[0], "my_cd")==0) {
+		if(args_size != 2) return badcommand(0);
+		return cd(command_args[1]);		
 	} else return badcommand(0);
 }
 
@@ -161,6 +168,29 @@ int touch(char* filename){
 		return 0;
 	}
 	fclose(file);
+
+	return 0;
+}
+
+int cd(char* dir){
+
+	char relativeDir[100];
+	char* slash = "/";
+
+	for(int i = 0 ; i < strlen(dir); i++){
+		if(!isalnum(dir[i])){
+			badcommand(3);
+			return 0;
+		}
+	}
+	
+	strcpy(relativeDir, slash);
+	strcat(relativeDir,dir);
+
+	if(chdir(dir) != 0){
+		badcommand(3);
+		return 0;
+	}
 
 	return 0;
 }
