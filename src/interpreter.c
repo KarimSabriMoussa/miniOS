@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h> 
 #include <string.h> 
 #include <ctype.h>
 #include <unistd.h>
@@ -33,6 +34,8 @@ int help();
 int quit();
 int set(char* var, char* value[],int args_size);
 int print(char* var);
+int echo(char* var);
+int my_ls();
 int run(char* script);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
@@ -73,6 +76,14 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "run")==0) {
 		if (args_size != 2) return badcommand(0);
 		return run(command_args[1]);
+
+	} else if (strcmp(command_args[0], "echo")==0) {
+		if (args_size != 2) return badcommand(0);
+		return echo(command_args[1]);
+	
+	} else if (strcmp(command_args[0], "my_ls")==0) {
+		if (args_size != 1) return badcommand(0);
+		return my_ls();
 	
 	} else if (strcmp(command_args[0], "my_touch")==0){
 		if(args_size != 2) return badcommand(0);
@@ -123,6 +134,56 @@ int set(char* var, char* command_args[], int args_size){
 
 int print(char* var){
 	printf("%s\n", mem_get_value(var)); 
+	return 0;
+}
+
+int echo(char* var){
+	if (var[0] == '$') {
+		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
+			printf("%s\n", mem_get_value(var));
+		} else printf("\n");
+	} else printf("%s\n", var);
+	
+	return 0;
+}
+
+int my_ls(){
+	DIR *directory;
+	struct dirent *entry;
+	char **direct;
+	char *temp;
+
+	directory = opendir(".");
+
+	if (directory == NULL) {
+		printf("Error opening the directory.\n");
+		return 1;
+	}
+
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0)
+			printf("%s\n", entry->d_name);
+	}
+
+	// while ((entry = readdir(directory)) != NULL) {
+	// 	direct++ = entry->d_name;
+	// }
+
+	// for(i=0;i<100;i++) {
+    // 	for(j=i+1;j<100;j++) {
+	// 		if(strcmp(direct[i],direct[j])>0){
+	// 			strcpy(temp,dirct[i]);
+	// 			strcpy(direct[i],direct[j]);
+	// 			strcpy(direct[j],temp);
+	// 		}
+	// 	}
+	// }
+
+	if (closedir(directory) == -1) {
+		printf("Error closing the directory.\n");
+		return 1;
+	}
+
 	return 0;
 }
 
