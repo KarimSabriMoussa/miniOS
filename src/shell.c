@@ -63,6 +63,11 @@ int parseInput(char ui[]) {
         for(b=0;ui[a] != ';' && ui[a]!='\0' && ui[a]!='\n' && ui[a]!=' ' && a<1000; a++, b++){
             tmp[b] = ui[a];     // extract a word
         }
+        if(b > 0){
+            tmp[b] = '\0';
+            words[w] = strdup(tmp);
+            w++;
+        }
         if(ui[a] == ';'){
             errorCode = interpreter(words,w);
             if(errorCode == -1){
@@ -71,9 +76,6 @@ int parseInput(char ui[]) {
             w = 0;
             a++;
         }else{
-            tmp[b] = '\0';
-            words[w] = strdup(tmp);
-            w++;
             if(ui[a] == '\0') break;
         }
     }

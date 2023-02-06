@@ -45,10 +45,12 @@ int cd(char* dir);
 int interpreter(char* command_args[], int args_size){
 	int i;
 
-	if ( args_size < 1 || args_size > MAX_ARGS_SIZE){
+	if (args_size < 1){
 		return badcommand(0);
 	}
-
+	if(args_size > MAX_ARGS_SIZE){
+		return badcommand(1);
+	}
 	for ( i=0; i<args_size; i++){ //strip spaces new line etc
 		command_args[i][strcspn(command_args[i], "\r\n")] = 0;
 	}
