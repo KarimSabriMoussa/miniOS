@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
-//#include <unistd.h>
+#include <unistd.h>
 #include "interpreter.h"
 #include "shellmemory.h"
 
@@ -23,14 +23,35 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
-	while(1) {							
-		printf("%c ",prompt);
-        //here you should check the unistd library 
-        //so that you can find a way to not display $ in the batch mode
-		fgets(userInput, MAX_USER_INPUT-1, stdin);
-		errorCode = parseInput(userInput);
-		if (errorCode == -1) exit(99);	// ignore all other errors
-		memset(userInput, 0, sizeof(userInput));
+	while(1) {	
+        int inInteractive =  isatty(STDIN_FILENO);
+
+        if(inInteractive){
+            printf("%c ",prompt);
+        }
+
+        fgets(userInput, MAX_USER_INPUT-1, stdin);
+                
+        if(inInteractive){
+            errorCode = parseInput(userInput);
+            if (errorCode == -1) exit(99);	// ignore all other errors
+            memset(userInput, 0, sizeof(userInput));
+        }
+
+        if(!inInteractive){
+            if(feof(stdin)){
+                char * tname = ctermid(NULL);
+                FILE *terminal = fopen(tname, "rt");
+                freopen(tname,"r", stdin);
+                inInteractive = 1;
+            }else{
+                errorCode = parseInput(userInput);
+                if (errorCode == -1) exit(99);	// ignore all other errors
+                memset(userInput, 0, sizeof(userInput));
+            }
+        }
+        
+
 	}
 
 	return 0;
