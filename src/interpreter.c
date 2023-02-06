@@ -91,8 +91,9 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		if(args_size != 2) return badcommand(0);
 		return cd(command_args[1]);		
-	} else return badcommand(0);
-}
+	} else {
+		return badcommand(0);
+}}
 
 int help(){
 
