@@ -23,20 +23,35 @@ int main(int argc, char *argv[]) {
 	
 	//init shell memory
 	mem_init();
-	while(1) {							
-		if(feof(stdin)){
-            char * tname = ctermid(NULL);
-            FILE *terminal = fopen(tname, "rt");
-            freopen(tname,"r", stdin); 
-        }
+	while(1) {	
+        int inInteractive =  isatty(STDIN_FILENO);
 
-        if(isatty(STDIN_FILENO)){
+        if(inInteractive){
             printf("%c ",prompt);
         }
+
         fgets(userInput, MAX_USER_INPUT-1, stdin);
-		errorCode = parseInput(userInput);
-		if (errorCode == -1) exit(99);	// ignore all other errors
-		memset(userInput, 0, sizeof(userInput));
+                
+        if(inInteractive){
+            errorCode = parseInput(userInput);
+            if (errorCode == -1) exit(99);	// ignore all other errors
+            memset(userInput, 0, sizeof(userInput));
+        }
+
+        if(!inInteractive){
+            if(feof(stdin)){
+                char * tname = ctermid(NULL);
+                FILE *terminal = fopen(tname, "rt");
+                freopen(tname,"r", stdin);
+                inInteractive = 1;
+            }else{
+                errorCode = parseInput(userInput);
+                if (errorCode == -1) exit(99);	// ignore all other errors
+                memset(userInput, 0, sizeof(userInput));
+            }
+        }
+        
+
 	}
 
 	return 0;
