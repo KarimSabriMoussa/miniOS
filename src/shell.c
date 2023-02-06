@@ -66,13 +66,10 @@ int parseInput(char ui[]) {
 
     for(a=0; ui[a]==' ' && a<1000; a++);    // skip white spaces
     while(ui[a] != '\n' && ui[a] != '\0' && a<1000) {
-        for(b=0; ui[a]!='\0' && ui[a]!='\n' && ui[a]!=' ' && a<1000; a++, b++){
-            if(ui[a] == ';') break;
+        for(;ui[a]==' ' && a<1000; a++);    // skip white spaces
+        for(b=0;ui[a] != ';' && ui[a]!='\0' && ui[a]!='\n' && ui[a]!=' ' && a<1000; a++, b++){
             tmp[b] = ui[a];     // extract a word
         }
-        tmp[b] = '\0';
-        words[w] = strdup(tmp);
-        w++;
         if(ui[a] == ';'){
             errorCode = interpreter(words,w);
             if(errorCode == -1){
@@ -80,12 +77,14 @@ int parseInput(char ui[]) {
             }
             w = 0;
             a++;
-            for(;ui[a]==' ' && a<1000; a++);    // skip white spaces
         }else{
+            tmp[b] = '\0';
+            words[w] = strdup(tmp);
+            w++;
             if(ui[a] == '\0') break;
-            a++;
         }
     }
+
     errorCode = interpreter(words, w);
     return errorCode;
 }

@@ -66,7 +66,7 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "set")==0) {
 		//set
 		if (args_size < 3) return badcommand(0);
-		if (args_size > 7) return badcommand(1);	
+		if (args_size > 7) return badcommand(1);
 		return set(command_args[1], command_args, args_size);
 	
 	} else if (strcmp(command_args[0], "print")==0) {
