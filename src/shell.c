@@ -50,8 +50,6 @@ int main(int argc, char *argv[]) {
                 memset(userInput, 0, sizeof(userInput));
             }
         }
-        
-
 	}
 
 	return 0;
@@ -63,20 +61,30 @@ int parseInput(char ui[]) {
     char *words[100];                            
     int a = 0;
     int b;                            
-    int w=0; // wordID    
+    int w=0;    // wordID    
     int errorCode;
-    for(a=0; ui[a]==' ' && a<1000; a++);        // skip white spaces
+
+    for(a=0; ui[a]==' ' && a<1000; a++);    // skip white spaces
     while(ui[a] != '\n' && ui[a] != '\0' && a<1000) {
-        for(b=0; ui[a]!=';' && ui[a]!='\0' && ui[a]!='\n' && ui[a]!=' ' && a<1000; a++, b++){
-            tmp[b] = ui[a];                        
-            // extract a word
+        for(;ui[a]==' ' && a<1000; a++);    // skip white spaces
+        for(b=0;ui[a] != ';' && ui[a]!='\0' && ui[a]!='\n' && ui[a]!=' ' && a<1000; a++, b++){
+            tmp[b] = ui[a];     // extract a word
         }
-        tmp[b] = '\0';
-        words[w] = strdup(tmp);
-        w++;
-        if(ui[a] == '\0') break;
-        a++; 
+        if(ui[a] == ';'){
+            errorCode = interpreter(words,w);
+            if(errorCode == -1){
+                return errorCode;
+            }
+            w = 0;
+            a++;
+        }else{
+            tmp[b] = '\0';
+            words[w] = strdup(tmp);
+            w++;
+            if(ui[a] == '\0') break;
+        }
     }
+
     errorCode = interpreter(words, w);
     return errorCode;
 }
