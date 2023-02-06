@@ -8,7 +8,7 @@
 #include "shellmemory.h"
 #include "shell.h"
 
-int MAX_ARGS_SIZE = 10;
+int MAX_ARGS_SIZE = 7;
 
 int badcommand(int code){
 	if(code == 1){
