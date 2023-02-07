@@ -187,7 +187,6 @@ int ls(){
 			count++;
 		}
 	}
-	printf("%d\n", count);
 
 	rewinddir(directory);
 
