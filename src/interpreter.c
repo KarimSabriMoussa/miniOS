@@ -39,7 +39,7 @@ int set(char* var, char* value[],int args_size);
 int print(char* var);
 int echo(char* var);
 int ls();
-int my_mkdir();
+int my_mkdir(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
@@ -173,8 +173,7 @@ int my_mkdir(char* var) {
 int ls(){
 	DIR *directory;
 	struct dirent *entry;
-	char **direct;
-	char *temp;
+	int count = 0;
 
 	directory = opendir(".");
 
@@ -184,9 +183,38 @@ int ls(){
 	}
 
 	while ((entry = readdir(directory)) != NULL) {
-		if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0)
-			printf("%s\n", entry->d_name);
+		if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0) {
+			count++;
+		}
 	}
+
+	rewinddir(directory);
+
+	char dirnames[count][100];
+	int i=0;
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0) {
+			strcpy(dirnames[i], entry->d_name);
+			i++;
+		}
+	}
+
+	for (int i=0;i<count-1;i++) {
+		for (int j=0;j<count-i-1;j++){
+			if(strcmp(dirnames[j], dirnames[j+1]) > 0){
+				char* str1 = strdup(dirnames[j]);
+				char* str2 = strdup(dirnames[j+1]);
+				strcpy(dirnames[j], str2);
+				strcpy(dirnames[j+1], str1);
+			}
+		}
+	}
+
+	for (int i=0;i<count;i++){
+		puts(dirnames[i]);
+	}
+
+
 
 	// while ((entry = readdir(directory)) != NULL) {
 	// 	direct++ = entry->d_name;
