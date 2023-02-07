@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "shellmemory.h"
 #include "shell.h"
 
@@ -17,6 +18,8 @@ int badcommand(int code){
 		printf("%s\n", "Bad Command: filename must be alphanumeric");
 	} else if(code == 3){
 		printf("%s\n", "Bad Command: my_cd");
+	} else if(code == 4){
+		printf("%s\n", "Bad Command: my_mkdir");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
@@ -35,7 +38,8 @@ int quit();
 int set(char* var, char* value[],int args_size);
 int print(char* var);
 int echo(char* var);
-int my_ls();
+int ls();
+int my_mkdir();
 int run(char* script);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
@@ -85,14 +89,20 @@ int interpreter(char* command_args[], int args_size){
 	
 	} else if (strcmp(command_args[0], "my_ls")==0) {
 		if (args_size != 1) return badcommand(0);
-		return my_ls();
+		return ls();
+
+	} else if (strcmp(command_args[0], "my_mkdir")==0) {
+		if(args_size != 2) return badcommand(0);
+		return my_mkdir(command_args[1]);	
 	
 	} else if (strcmp(command_args[0], "my_touch")==0){
 		if(args_size != 2) return badcommand(0);
 		return touch(command_args[1]);
+
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		if(args_size != 2) return badcommand(0);
 		return cd(command_args[1]);		
+
 	} else {
 		return badcommand(0);
 }}
@@ -150,7 +160,17 @@ int echo(char* var){
 	return 0;
 }
 
-int my_ls(){
+int my_mkdir(char* var) {
+	if (var[0] == '$') {
+		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
+			mkdir(mem_get_value(var), S_IRWXU | S_IRWXG | S_IRWXO);
+		} else badcommand(4);
+	} else mkdir(var, S_IRWXU | S_IRWXG | S_IRWXO);
+
+	return 0;
+}
+
+int ls(){
 	DIR *directory;
 	struct dirent *entry;
 	char **direct;
