@@ -38,12 +38,13 @@ int quit();
 int set(char* var, char* value[],int args_size);
 int print(char* var);
 int echo(char* var);
-int ls();
+int my_ls();
 int my_mkdir(char* var);
 int run(char* script);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
 int cd(char* dir);
+int strcompare(char* str1, char* str2);
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -89,7 +90,7 @@ int interpreter(char* command_args[], int args_size){
 	
 	} else if (strcmp(command_args[0], "my_ls")==0) {
 		if (args_size != 1) return badcommand(0);
-		return ls();
+		return my_ls();
 
 	} else if (strcmp(command_args[0], "my_mkdir")==0) {
 		if(args_size != 2) return badcommand(0);
@@ -137,7 +138,8 @@ int set(char* var, char* command_args[], int args_size){
 	strcpy(value,"");
 	for(int i = 2;i<args_size;i++){
 		strcat(value,command_args[i]);
-		strcat(value, delimeter);
+		if(i != args_size - 1)
+			strcat(value, delimeter);
 	}
 	mem_set_value(var, value);
 
@@ -160,6 +162,8 @@ int echo(char* var){
 	return 0;
 }
 
+// creates a directory in the current directory with name var "my_mkdir"
+// checks in the memory if the given name is a variable
 int my_mkdir(char* var) {
 	if (var[0] == '$') {
 		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
@@ -170,7 +174,8 @@ int my_mkdir(char* var) {
 	return 0;
 }
 
-int ls(){
+// lists all directories/files in the current directory "my_ls"
+int my_ls(){
 	DIR *directory;
 	struct dirent *entry;
 	int count = 0;
@@ -201,7 +206,7 @@ int ls(){
 
 	for (int i=0;i<count-1;i++) {
 		for (int j=0;j<count-i-1;j++){
-			if(strcmp(dirnames[j], dirnames[j+1]) > 0){
+			if(strcompare(dirnames[j], dirnames[j+1]) > 0){
 				char* str1 = strdup(dirnames[j]);
 				char* str2 = strdup(dirnames[j+1]);
 				strcpy(dirnames[j], str2);
@@ -214,22 +219,6 @@ int ls(){
 		puts(dirnames[i]);
 	}
 
-
-
-	// while ((entry = readdir(directory)) != NULL) {
-	// 	direct++ = entry->d_name;
-	// }
-
-	// for(i=0;i<100;i++) {
-    // 	for(j=i+1;j<100;j++) {
-	// 		if(strcmp(direct[i],direct[j])>0){
-	// 			strcpy(temp,dirct[i]);
-	// 			strcpy(direct[i],direct[j]);
-	// 			strcpy(direct[j],temp);
-	// 		}
-	// 	}
-	// }
-
 	if (closedir(directory) == -1) {
 		printf("Error closing the directory.\n");
 		return 1;
@@ -238,6 +227,7 @@ int ls(){
 	return 0;
 }
 
+// runs a file with name script if it exists "run"
 int run(char* script){
 	int errCode = 0;
 	char line[1000];
@@ -263,6 +253,7 @@ int run(char* script){
 	return errCode;
 }
 
+// creates a file with name filename "my_touch"
 int touch(char* filename){
 	FILE* file;
 
@@ -284,25 +275,42 @@ int touch(char* filename){
 	return 0;
 }
 
+// change directory "my_cd"
 int cd(char* dir){
-
-	char relativeDir[100];
-	char* slash = "/";
 
 	for(int i = 0 ; i < strlen(dir); i++){
 		if(!isalnum(dir[i])){
+			puts("here");
 			badcommand(3);
 			return 0;
 		}
 	}
-	
-	strcpy(relativeDir, slash);
-	strcat(relativeDir,dir);
 
 	if(chdir(dir) != 0){
+		puts("there");
 		badcommand(3);
 		return 0;
 	}
 
+	return 0;
+}
+
+// Using this method instead of strcmp to place strings that start with uppercase letters right before strings with the same letter in lowercase.
+// It compares the two strings and returns -1 if str1 should be before str2, returns 1 if str1 should be after str2, returns 0 if they are equal.
+int strcompare(char* str1, char* str2) {
+	int i = 0;
+	while (1) {
+		if (str1[i] == str2[i]) {
+			i++;
+		} else if (str1[i] < str2[i]) {
+			if(isupper(str1[i]) && islower(str2[i]) && str1[i] + 32 > str2[i]) {
+				return 1;
+			} else return -1;
+		} else {
+			if(isupper(str2[i]) && islower(str1[i]) && str2[i] + 32 > str1[i]) {
+				return -1;
+			} else return 1;
+		}
+	}
 	return 0;
 }
