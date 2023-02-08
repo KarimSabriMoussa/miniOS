@@ -280,14 +280,12 @@ int cd(char* dir){
 
 	for(int i = 0 ; i < strlen(dir); i++){
 		if(!isalnum(dir[i])){
-			puts("here");
 			badcommand(3);
 			return 0;
 		}
 	}
 
 	if(chdir(dir) != 0){
-		puts("there");
 		badcommand(3);
 		return 0;
 	}
