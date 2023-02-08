@@ -167,7 +167,9 @@ int echo(char* var){
 int my_mkdir(char* var) {
 	if (var[0] == '$') {
 		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
-			mkdir(mem_get_value(var), S_IRWXU | S_IRWXG | S_IRWXO);
+			if (strstr(mem_get_value(var), " ")) {
+				badcommand(4);
+			} else mkdir(mem_get_value(var), S_IRWXU | S_IRWXG | S_IRWXO);
 		} else badcommand(4);
 	} else mkdir(var, S_IRWXU | S_IRWXG | S_IRWXO);
 
