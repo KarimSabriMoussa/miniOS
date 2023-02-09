@@ -13,13 +13,13 @@ int MAX_ARGS_SIZE = 7;
 
 int badcommand(int code){
 	if(code == 1){
-		printf("%s\n", "Bad Command: Too many tokens");
+		printf("%s\n", "Bad command: Too many tokens");
 	} else if(code == 2){
-		printf("%s\n", "Bad Command: filename must be alphanumeric");
+		printf("%s\n", "Bad command: filename must be alphanumeric");
 	} else if(code == 3){
-		printf("%s\n", "Bad Command: my_cd");
+		printf("%s\n", "Bad command: my_cd");
 	} else if(code == 4){
-		printf("%s\n", "Bad Command: my_mkdir");
+		printf("%s\n", "Bad command: my_mkdir");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
