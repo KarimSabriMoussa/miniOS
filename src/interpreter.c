@@ -21,7 +21,7 @@ int badcommand(int code){
 	} else if(code == 4){
 		printf("%s\n", "Bad command: my_mkdir");
 	} else{	
-		printf("%s\n", "Unknown Command");
+		printf("%s\n", "Unknown command");
 	}
 
 	return 1;
