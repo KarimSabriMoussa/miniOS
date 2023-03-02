@@ -82,3 +82,30 @@ char *mem_get_value(char *var_in) {
 	return "Variable does not exist";
 
 }
+
+void mem_clear_var(char *var_in) {
+	for (int i=0; i<1000; i++){
+		if (strcmp(shellmemory[i].var, var_in) == 0){
+			shellmemory[i].var = strdup("none");
+			return;
+		} 
+	}
+	return;
+}
+
+int mem_get_free_space() {
+	int i;
+	for (i=0; i<1000; i++){
+		if (strcmp(shellmemory[i].var, "none") == 0){
+			break;
+		} 
+	}
+	return 1000-i;
+}
+
+char *mem_get_value_from_index(int index) {
+	if(index >= 0 && index < 1000) {
+		return shellmemory[index].value;
+	}
+	return "Given index is out of bounds";
+}

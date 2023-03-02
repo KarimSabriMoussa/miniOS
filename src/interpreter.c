@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include "shellmemory.h"
 #include "shell.h"
+#include "pcb.h"
 
 int MAX_ARGS_SIZE = 7;
 
@@ -20,6 +21,8 @@ int badcommand(int code){
 		printf("%s\n", "Bad command: my_cd");
 	} else if(code == 4){
 		printf("%s\n", "Bad command: my_mkdir");
+	} else if(code == 5){
+		printf("%s\n", "Bad command: not enough space in OS shell memory");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
@@ -239,18 +242,54 @@ int run(char* script){
 		return badcommandFileDoesNotExist();
 	}
 
+	//count script lines
+	int numlines = 0;
+	while(1){
+		fgets(line,999,p);
+		numlines++;
+		if(feof(p)){
+			break;
+		}
+	}
+
+	// print error if no available space
+	if (numlines > mem_get_free_space()) {
+		return badcommand(5);
+	}
+
+	// get process starting index
+	int pStart = 1000-mem_get_free_space();
+	
+	// store process in shell memory
+	int counter = 0;
+	char offset[100];
+	rewind(p);
 	fgets(line,999,p);
 	while(1){
-		errCode = parseInput(line);	// which calls interpreter()
+		char encoding[100];
+		strcpy(encoding, script);
+		sprintf(offset,"%d",counter);
+		strcat(encoding, offset);
+		mem_set_value(encoding, line);
 		memset(line, 0, sizeof(line));
-
+		counter++;
 		if(feof(p)){
 			break;
 		}
 		fgets(line,999,p);
+		
+	}
+
+	// execute instructions
+	counter = 0;
+	while(counter<numlines) {
+		errCode = parseInput(mem_get_value_from_index(pStart+counter));
+		counter++;
 	}
 
     fclose(p);
+	printf("pStart: %d, counter: %d", pStart, counter);
+	printf("file closed");
 
 	return errCode;
 }
