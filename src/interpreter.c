@@ -287,9 +287,10 @@ int run(char* script){
 		counter++;
 	}
 
+	// shell memory cleanup
+	mem_clean_up(script, numlines);
+
     fclose(p);
-	printf("pStart: %d, counter: %d", pStart, counter);
-	printf("file closed");
 
 	return errCode;
 }

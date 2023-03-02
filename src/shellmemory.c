@@ -83,14 +83,34 @@ char *mem_get_value(char *var_in) {
 
 }
 
-void mem_clear_var(char *var_in) {
+void mem_clear_var(char *var_in, int num) {
 	for (int i=0; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
-			shellmemory[i].var = strdup("none");
+			for (int j=i+num; j<1000; j++) {
+				if (shellmemory[j].var != strdup("none")) {
+					shellmemory[j-num].var = shellmemory[j].var;
+					shellmemory[j-num].value = shellmemory[j].value;
+				} else {
+					shellmemory[j-num].var = shellmemory[j].var;
+					shellmemory[j-num].value = shellmemory[j].value;
+					break;
+				}
+			}
 			return;
 		} 
 	}
 	return;
+}
+
+void mem_clean_up(char *script, int lines) {
+	char offset[100];
+	char encoding[100];
+	strcpy(encoding, script);
+	sprintf(offset,"%d",0);
+	strcat(encoding, offset);
+	mem_clear_var(encoding, lines);
+	memset(encoding, 0, sizeof(encoding));
+	memset(offset, 0, sizeof(offset));
 }
 
 int mem_get_free_space() {
