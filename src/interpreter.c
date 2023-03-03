@@ -23,6 +23,8 @@ int badcommand(int code){
 		printf("%s\n", "Bad command: my_mkdir");
 	} else if(code == 5){
 		printf("%s\n", "Bad command: not enough space in OS shell memory");
+	} else if(code == 6){
+		printf("%s\n", "Bad command: this is not a valid policy");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
@@ -129,14 +131,8 @@ int quit(){
 }
 
 int set(char* var, char* command_args[], int args_size){
-	char *link = "=";
-	char buffer[1000];
 	char *delimeter = " ";
 	char value[500];
-
-	strcpy(buffer, var);
-	strcat(buffer, link);
-	strcat(buffer, value);	
 
 	strcpy(value,"");
 	for(int i = 2;i<args_size;i++){
@@ -252,24 +248,23 @@ int run(char* script){
 		}
 	}
 
+	int freeSpace = mem_get_free_space();
+
 	// print error if no available space
-	if (numlines > mem_get_free_space()) {
+	if (numlines > freeSpace) {
 		return badcommand(5);
 	}
 
 	// get process starting index
-	int pStart = 1000-mem_get_free_space();
+	int pStart = 1000-freeSpace;
 	
 	// store process in shell memory
 	int counter = 0;
-	char offset[100];
 	rewind(p);
 	fgets(line,999,p);
 	while(1){
 		char encoding[100];
-		strcpy(encoding, script);
-		sprintf(offset,"%d",counter);
-		strcat(encoding, offset);
+		encode(encoding, counter, script);
 		mem_set_value(encoding, line);
 		memset(line, 0, sizeof(line));
 		counter++;
@@ -353,4 +348,83 @@ int strcompare(char* str1, char* str2) {
 		}
 	}
 	return 0;
+}
+
+int exec(char* command_args[], int args_size) {
+	char* policy = command_args[args_size-1];
+
+	//TODO: check if two files have the same name
+	
+	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
+		return badcommand(6);
+	} else {
+		char *scripts[3];
+		struct pcb* pcbs[3] = {NULL, NULL, NULL};
+		if (args_size > 5) {
+			return badcommand(1);
+		} else if (args_size == 5) {
+			scripts[0] = command_args[1];
+			scripts[1] = command_args[2];
+			scripts[2] = command_args[3];
+		} else if (args_size == 4) {
+			scripts[0] = command_args[1];
+			scripts[1] = command_args[2];
+		} else if (args_size == 3) {
+			scripts[0] = command_args[1];
+		} else {
+			//error
+		}
+
+		for (int i=0; i<args_size-2; i++){
+			
+			FILE *f = fopen(scripts[i],"rt");
+
+			if(f == NULL){
+				return badcommandFileDoesNotExist();
+			}
+			
+			fclose(f);
+		}
+
+		int scriptLines[3];
+		int totalSpace = 0;
+		for (int i=0; i<args_size-2; i++){
+			scriptLines[i] = count_script_lines(scripts[i]);
+			totalSpace += scriptLines[i];
+		}
+
+		if (mem_get_free_space() < totalSpace) {
+			return badcommand(5);
+		}
+
+		for (int i=0; i<args_size-2; i++){
+			pcbs[i] = makePCB(scripts[i], scriptLines[i]);
+		}
+	} 
+
+	// call scheduler
+
+	return 0;
+}
+
+int count_script_lines(char *script) {
+
+	if (script == NULL) {
+		return 0;
+	}
+
+	FILE *f = fopen(script,"rt");
+	char line[1000];
+	int numlines = 0;
+
+	while(1){
+		fgets(line,999,f);
+		numlines++;
+		if(feof(f)){
+			break;
+		}
+	}
+
+	fclose(f);
+	return numlines;
 }

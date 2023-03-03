@@ -3,14 +3,12 @@
 
 struct pcb
 {
-    int pid;
+    char *pid;
     int startPos;
     int length;
     int pc;
 };
-void setPID (struct pcb process, int pid);
-void setStartPos (struct pcb process, int startPos);
-void setLength (struct pcb process, int length);
-void setPC (struct pcb process, int pc);
+
+struct pcb* makePCB(char *script, int numlines);
 
 #endif

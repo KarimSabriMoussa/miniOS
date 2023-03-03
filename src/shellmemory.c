@@ -129,3 +129,10 @@ char *mem_get_value_from_index(int index) {
 	}
 	return "Given index is out of bounds";
 }
+
+void encode(char *code, int counter, char *script){
+	char offset[5];
+	strcpy(code, script);
+	sprintf(offset,"%d",counter);
+	strcat(code, offset);
+}
