@@ -1,5 +1,8 @@
-#include "pcb.h"
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include "shellmemory.h"
+#include "pcb.h"
 
 struct pcb* makePCB(char *script, int numlines) {
 	

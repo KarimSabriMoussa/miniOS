@@ -1,9 +1,13 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "pcb.h"
 #include "ready_queue.h"
 #include "shellmemory.h"
+#include "shell.h"
 
-#define QUEUE_LENGTH 10
+
+#define QUEUE_LENGTH 5
 struct pcb *readyQueue[QUEUE_LENGTH];
 struct pcb *head;
 
@@ -14,17 +18,18 @@ void initialize_ready_queue(){
 }
 
 void add_pcb_to_ready_queue(struct pcb *p){
+ 
     for (int i = 0; i < QUEUE_LENGTH; i++){
         if (readyQueue[i] == NULL){
-            *readyQueue[i] = *p;
+            readyQueue[i] = p;
             break;
         }
     }
 }
 
-sort_pcbs_by_shortest_length(struct pcb* arr[],int numProcesses){
+void sort_pcbs_by_shortest_length(struct pcb *arr[],int numProcesses){
 
-    struct pcb* temp = NULL;
+    struct pcb *temp = NULL;
 
     for (int i = 0; i < numProcesses; i++) {     
             for (int j = i+1; j < numProcesses; j++) {     
@@ -38,13 +43,11 @@ sort_pcbs_by_shortest_length(struct pcb* arr[],int numProcesses){
 
 }
 
-add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
     head = NULL; 
-
     if (p1 != NULL){
         add_pcb_to_ready_queue(p1);
-        
         if (p2 != NULL){
             (*p1).nextPCB = p2;
             add_pcb_to_ready_queue(p2);
@@ -57,68 +60,68 @@ add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     }
 }
 
-add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     
-    struct pcb* arr[3];
     int numProcesses = 0;
     head = NULL;
 
     if (p1 != NULL){
-        arr[0] = p1;
+        readyQueue[0] = p1;
         numProcesses++;
 
         if (p2 != NULL){
-            arr[1] == p2;
+            readyQueue[1] = p2;
             numProcesses++;
         }
         if (p3 != NULL){
-            arr[2] == p3;
+            readyQueue[2] = p3;
             numProcesses++;
         }
 
-        sort_pcbs_by_shortest_length(arr,numProcesses);
+        sort_pcbs_by_shortest_length(readyQueue,numProcesses);
 
         for(int i = 0 ; i < numProcesses; i++){
-            add_pcb_to_ready_queue(arr[i]);
-
             if(i != 0){
-                (*arr[i-1]).nextPCB = arr[i];
+                (*readyQueue[i-1]).nextPCB = readyQueue[i];
             }
         }
+
+        head = readyQueue[0];
     }
 
  
 }
 
-void execute_script_lines(struct pcb* process, int numLines){
+void execute_script_lines(struct pcb *process, int numLines){
+
     for(int i = 0; i < numLines; i++){
         
-        char * line;
+        char* line;
         int index = (*process).startPos + (*process).pc;
 
         parseInput(mem_get_value_from_index(index));
         (*process).pc++;
     }
 
-    if((*process).pc == ((*process).length - 1)){
+    if((*process).pc == ((*process).length)){
         head = (*process).nextPCB;
+        free(process);
     }
 }
 
 int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
     add_pcbs_to_ready_queue_FCFS(p1, p2, p3);
-
+       
     while(head != NULL){
         execute_script_lines(head,(*head).length);
     }
-
     return 0;
 }
 
 int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
-    add_pcbs_to_ready_queue_SJ(p1, p2, p3);
+    add_pcbs_to_ready_queue_SJF(p1, p2, p3);
 
     while(head != NULL){
         execute_script_lines(head,(*head).length);
@@ -127,6 +130,13 @@ int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
+int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+
+}
+
+int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+
+}
 
 int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
 
@@ -148,3 +158,4 @@ int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
         return -1;
     }
 }
+

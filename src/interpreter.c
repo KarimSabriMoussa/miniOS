@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <dirent.h> 
-#include <string.h> 
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
@@ -47,10 +47,12 @@ int echo(char* var);
 int my_ls();
 int my_mkdir(char* var);
 int run(char* script);
+int exec(char * command_args[], int args_size);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
 int cd(char* dir);
 int strcompare(char* str1, char* str2);
+int count_script_lines(char * script);
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -109,7 +111,9 @@ int interpreter(char* command_args[], int args_size){
 	} else if (strcmp(command_args[0], "my_cd")==0) {
 		if(args_size != 2) return badcommand(0);
 		return cd(command_args[1]);		
-
+	} else if (strcmp(command_args[0], "exec")==0){
+		if(args_size < 3 || args_size > 5) return badcommand(0);
+		return exec(command_args, args_size);
 	} else {
 		return badcommand(0);
 }}
@@ -354,6 +358,7 @@ int strcompare(char* str1, char* str2) {
 int exec(char* command_args[], int args_size) {
 	
 	char* policy = command_args[args_size-1];
+	int errCode = 0;
 
 	//TODO: check if two files have the same name
 	
@@ -361,8 +366,10 @@ int exec(char* command_args[], int args_size) {
 		return badcommand(6);
 	}
 
+
 	char *scripts[3] = {NULL, NULL, NULL};
 	struct pcb* pcbs[3] = {NULL, NULL, NULL};
+
 
 	if (args_size > 5) {
 		return badcommand(1);
@@ -378,6 +385,7 @@ int exec(char* command_args[], int args_size) {
 	} else {
 		//error
 	}
+
 
 	for (int i=0; i<args_size-2; i++){
 		
@@ -397,6 +405,7 @@ int exec(char* command_args[], int args_size) {
 		totalSpace += scriptLines[i];
 	}
 
+
 	if (mem_get_free_space() < totalSpace) {
 		return badcommand(5);
 	}
@@ -405,7 +414,22 @@ int exec(char* command_args[], int args_size) {
 		pcbs[i] = makePCB(scripts[i], scriptLines[i]);
 	}
 
-	return scheduler(pcbs[0], pcbs[1], pcbs[2], policy);
+	// printf("process: %s numLines: %d\n" , scripts[0], scriptLines[0]);
+	// printf("process: %s numLines: %d\n", scripts[1], scriptLines[1]);
+	// printf("process: %s numLines: %d\n", scripts[2], scriptLines[2]);
+
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], policy);
+
+	//printMemory("memoryLog1.txt");
+
+	for(int i = 0 ; i < args_size-2 ; i++ ){
+		// shell memory cleanup
+		mem_clean_up(scripts[i], scriptLines[i]);
+	}
+
+	//printMemory("memoryLog2.txt");
+
+	return errCode;
 }
 
 int count_script_lines(char *script) {

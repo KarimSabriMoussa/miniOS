@@ -1,6 +1,7 @@
-#include<stdlib.h>
-#include<string.h>
-#include<stdio.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 
 
 struct memory_struct{
@@ -135,4 +136,29 @@ void encode(char *code, int counter, char *script){
 	strcpy(code, script);
 	sprintf(offset,"%d",counter);
 	strcat(code, offset);
+}
+
+void printMemory(char *filename){
+
+	FILE *f = fopen(filename, "w");
+	int counter = 0;
+	int flag = 0;
+
+	for(int i = 0; i < sizeof(shellmemory); i++){
+		if(strcmp(shellmemory[i].value, "none") != 0){
+			if(flag == 1 ){
+				fprintf(f,"%d lines of none\n", counter);
+				counter = 0;
+				flag = 0;
+			}
+			fprintf(f,"%d: %s\n", i, shellmemory[i].value);
+		}else{
+			if (flag == 0){
+				flag = 1;
+			}
+			counter++;
+		}
+	}
+
+	fclose(f);
 }
