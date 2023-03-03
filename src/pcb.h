@@ -7,6 +7,7 @@ struct pcb
     int startPos;
     int length;
     int pc;
+    struct pcb* nextPCB;
 };
 void setPID (struct pcb process, int pid);
 void setStartPos (struct pcb process, int startPos);
