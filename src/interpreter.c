@@ -9,6 +9,7 @@
 #include "shellmemory.h"
 #include "shell.h"
 #include "pcb.h"
+#include "ready_queue.h"
 
 int MAX_ARGS_SIZE = 7;
 
@@ -351,60 +352,60 @@ int strcompare(char* str1, char* str2) {
 }
 
 int exec(char* command_args[], int args_size) {
+	
 	char* policy = command_args[args_size-1];
 
 	//TODO: check if two files have the same name
 	
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
+	}
+
+	char *scripts[3] = {NULL, NULL, NULL};
+	struct pcb* pcbs[3] = {NULL, NULL, NULL};
+
+	if (args_size > 5) {
+		return badcommand(1);
+	} else if (args_size == 5) {
+		scripts[0] = command_args[1];
+		scripts[1] = command_args[2];
+		scripts[2] = command_args[3];
+	} else if (args_size == 4) {
+		scripts[0] = command_args[1];
+		scripts[1] = command_args[2];
+	} else if (args_size == 3) {
+		scripts[0] = command_args[1];
 	} else {
-		char *scripts[3];
-		struct pcb* pcbs[3] = {NULL, NULL, NULL};
-		if (args_size > 5) {
-			return badcommand(1);
-		} else if (args_size == 5) {
-			scripts[0] = command_args[1];
-			scripts[1] = command_args[2];
-			scripts[2] = command_args[3];
-		} else if (args_size == 4) {
-			scripts[0] = command_args[1];
-			scripts[1] = command_args[2];
-		} else if (args_size == 3) {
-			scripts[0] = command_args[1];
-		} else {
-			//error
+		//error
+	}
+
+	for (int i=0; i<args_size-2; i++){
+		
+		FILE *f = fopen(scripts[i],"rt");
+
+		if(f == NULL){
+			return badcommandFileDoesNotExist();
 		}
+		
+		fclose(f);
+	}
 
-		for (int i=0; i<args_size-2; i++){
-			
-			FILE *f = fopen(scripts[i],"rt");
+	int scriptLines[3] = {0, 0, 0};
+	int totalSpace = 0;
+	for (int i=0; i<args_size-2; i++){
+		scriptLines[i] = count_script_lines(scripts[i]);
+		totalSpace += scriptLines[i];
+	}
 
-			if(f == NULL){
-				return badcommandFileDoesNotExist();
-			}
-			
-			fclose(f);
-		}
+	if (mem_get_free_space() < totalSpace) {
+		return badcommand(5);
+	}
 
-		int scriptLines[3];
-		int totalSpace = 0;
-		for (int i=0; i<args_size-2; i++){
-			scriptLines[i] = count_script_lines(scripts[i]);
-			totalSpace += scriptLines[i];
-		}
+	for (int i=0; i<args_size-2; i++){
+		pcbs[i] = makePCB(scripts[i], scriptLines[i]);
+	}
 
-		if (mem_get_free_space() < totalSpace) {
-			return badcommand(5);
-		}
-
-		for (int i=0; i<args_size-2; i++){
-			pcbs[i] = makePCB(scripts[i], scriptLines[i]);
-		}
-	} 
-
-	// call scheduler
-
-	return 0;
+	return scheduler(pcbs[0], pcbs[1], pcbs[2], policy);
 }
 
 int count_script_lines(char *script) {

@@ -35,6 +35,7 @@ struct pcb* makePCB(char *script, int numlines) {
     (*p).length = numlines;
     (*p).pc = 0;
     (*p).pid = script;
+	(*p).nextPCB = NULL;
 
     return p;
 }
