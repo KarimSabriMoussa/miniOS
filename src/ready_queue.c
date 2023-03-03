@@ -22,12 +22,29 @@ void add_pcb_to_ready_queue(struct pcb *p){
     }
 }
 
-add_pcbs_to_ready_queue(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
+sort_pcbs_by_shortest_length(struct pcb* arr[],int numProcesses){
 
-    if (strcmp("FCFS", policy) == 0  || strcmp("RR", policy) == 0){
-        if (p1 != NULL){
-            add_pcb_to_ready_queue(p1);
-        }
+    struct pcb* temp = NULL;
+
+    for (int i = 0; i < numProcesses; i++) {     
+            for (int j = i+1; j < numProcesses; j++) {     
+                if((*arr[i]).length > (*arr[j]).length) {    
+                    temp = arr[i];    
+                    arr[i] = arr[j];    
+                    arr[j] = temp;    
+                }     
+            }     
+        } 
+
+}
+
+add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+
+    head = NULL; 
+
+    if (p1 != NULL){
+        add_pcb_to_ready_queue(p1);
+        
         if (p2 != NULL){
             (*p1).nextPCB = p2;
             add_pcb_to_ready_queue(p2);
@@ -36,9 +53,41 @@ add_pcbs_to_ready_queue(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *po
             (*p2).nextPCB = p3;
             add_pcb_to_ready_queue(p3);
         }
-
         head = p1;
     }
+}
+
+add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+    
+    struct pcb* arr[3];
+    int numProcesses = 0;
+    head = NULL;
+
+    if (p1 != NULL){
+        arr[0] = p1;
+        numProcesses++;
+
+        if (p2 != NULL){
+            arr[1] == p2;
+            numProcesses++;
+        }
+        if (p3 != NULL){
+            arr[2] == p3;
+            numProcesses++;
+        }
+
+        sort_pcbs_by_shortest_length(arr,numProcesses);
+
+        for(int i = 0 ; i < numProcesses; i++){
+            add_pcb_to_ready_queue(arr[i]);
+
+            if(i != 0){
+                (*arr[i-1]).nextPCB = arr[i];
+            }
+        }
+    }
+
+ 
 }
 
 void execute_script_lines(struct pcb* process, int numLines){
@@ -56,29 +105,44 @@ void execute_script_lines(struct pcb* process, int numLines){
     }
 }
 
-int scheduleFCFS(){
+int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+
+    add_pcbs_to_ready_queue_FCFS(p1, p2, p3);
+
     while(head != NULL){
         execute_script_lines(head,(*head).length);
     }
+
+    return 0;
+}
+
+int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+
+    add_pcbs_to_ready_queue_SJ(p1, p2, p3);
+
+    while(head != NULL){
+        execute_script_lines(head,(*head).length);
+    }
+
+    return 0;
 }
 
 
 int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
 
     initialize_ready_queue();
-    add_pcbs_to_ready_queue(p1,p2,p3,policy);
 
     if (strcmp("FCFS", policy) == 0){
-        return scheduleFCFS();
+        return scheduleFCFS(p1, p2, p3);
     }
     else if (strcmp("SJF", policy) == 0){
-        return scheduleSJF();
+        return scheduleSJF(p1, p2, p3);
     }
     else if (strcmp("RR", policy) == 0){
-        return scheduleRR();
+        return scheduleRR(p1, p2, p3);
     }
     else if (strcmp("AGING", policy) == 0){
-        return scheduleAGING();
+        return scheduleAGING(p1, p2, p3);
     }
     else{
         return -1;
