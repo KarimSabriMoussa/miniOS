@@ -101,18 +101,26 @@ void sort_pcbs_by_aging_score(int numProcesses){
     return;
 }
 
-void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
 
     head = NULL; 
     if (p1 != NULL){
         add_pcb_to_ready_queue(p1);
+        numProcesses++;
         if (p2 != NULL){
             (*p1).nextPCB = p2;
             add_pcb_to_ready_queue(p2);
+            numProcesses++;
         }
         if (p3 != NULL){
             (*p2).nextPCB = p3;
             add_pcb_to_ready_queue(p3);
+            numProcesses++;
+        }
+        if (p4 != NULL){
+            (*p3).nextPCB = p4;
+            add_pcb_to_ready_queue(p4);
+            numProcesses++;
         }
 
         head = readyQueue[0];
@@ -121,7 +129,7 @@ void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3
     return;
 }
 
-void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
     
     numProcesses = 0;
     head = NULL;
@@ -136,6 +144,10 @@ void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3)
         }
         if (p3 != NULL){
             readyQueue[2] = p3;
+            numProcesses++;
+        }
+        if (p4 != NULL){
+            readyQueue[3] = p4;
             numProcesses++;
         }
 
@@ -153,7 +165,7 @@ void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3)
     return;
 }
 
-void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
     
     numProcesses = 0;
     head = NULL;
@@ -170,6 +182,10 @@ void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
             readyQueue[2] = p3;
             numProcesses++;
         }
+        if (p4 != NULL){
+            readyQueue[3] = p4;
+            numProcesses++;
+        }
 
         for(int i = 0; i < numProcesses; i++){
             (*readyQueue[i % numProcesses]).nextPCB = (readyQueue[(i+1) % numProcesses]);
@@ -181,7 +197,7 @@ void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return;
 }
 
-void add_pcbs_to_ready_queue_AGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+void add_pcbs_to_ready_queue_AGING(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
 
     numProcesses = 0;
     head = NULL;
@@ -196,6 +212,10 @@ void add_pcbs_to_ready_queue_AGING(struct pcb *p1, struct pcb *p2, struct pcb *p
         }
         if (p3 != NULL){
             readyQueue[2] = p3;
+            numProcesses++;
+        }
+        if (p4 != NULL){
+            readyQueue[3] = p4;
             numProcesses++;
         }
     }
@@ -288,9 +308,9 @@ void execute_script_lines_AGING(struct pcb *process){
 
 }
 
-int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
 
-    add_pcbs_to_ready_queue_FCFS(p1, p2, p3);
+    add_pcbs_to_ready_queue_FCFS(p1, p2, p3,p4);
        
     while(head != NULL){
         execute_script(head);
@@ -298,9 +318,9 @@ int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
-int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
 
-    add_pcbs_to_ready_queue_SJF(p1, p2, p3);
+    add_pcbs_to_ready_queue_SJF(p1, p2, p3,p4);
 
     while(head != NULL){
         execute_script(head);
@@ -309,9 +329,9 @@ int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
-int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
     
-    add_pcbs_to_ready_queue_RR(p1, p2, p3);
+    add_pcbs_to_ready_queue_RR(p1, p2, p3,p4);
 
     while(head != NULL){
         execute_script_lines_RR(head,2);
@@ -320,11 +340,20 @@ int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
-int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
+int scheduleRR30(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
+    
+    add_pcbs_to_ready_queue_RR(p1, p2, p3,p4);
 
-    add_pcbs_to_ready_queue_AGING(p1,p2,p3);
+    while(head != NULL){
+        execute_script_lines_RR(head,30);
+    }
 
-    printAgingScore("aging.txt");
+    return 0;
+}
+
+int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4){
+
+    add_pcbs_to_ready_queue_AGING(p1,p2,p3,p4);
 
     sort_pcbs_by_aging_score(numProcesses);  
     head = readyQueue[0];
@@ -332,7 +361,6 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     while(head != NULL){
         execute_script_lines_AGING(head);
         decrement_aging_score();
-        printAgingScore("aging.txt");
         sort_pcbs_by_aging_score(numProcesses);  
         head = readyQueue[0];
     }
@@ -340,21 +368,24 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
-int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
+int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *p4, char *policy){
 
     initialize_ready_queue();
 
     if (strcmp("FCFS", policy) == 0){
-        return scheduleFCFS(p1, p2, p3);
+        return scheduleFCFS(p1, p2, p3,p4);
     }
     else if (strcmp("SJF", policy) == 0){
-        return scheduleSJF(p1, p2, p3);
+        return scheduleSJF(p1, p2, p3,p4);
     }
     else if (strcmp("RR", policy) == 0){
-        return scheduleRR(p1, p2, p3);
-    }
+        return scheduleRR(p1, p2, p3,p4);
+    } 
+    else if (strcmp("RR30", policy) == 0){
+        return scheduleRR30(p1, p2, p3,p4);
+    } 
     else if (strcmp("AGING", policy) == 0){
-        return scheduleAGING(p1, p2, p3);
+        return scheduleAGING(p1, p2, p3,p4);
     }
     else{
         return -1;
