@@ -144,20 +144,32 @@ void printMemory(char *filename){
 	int counter = 0;
 	int flag = 0;
 
-	for(int i = 0; i < sizeof(shellmemory); i++){
+
+	for(int i = 0; i < 1000; i++){
 		if(strcmp(shellmemory[i].value, "none") != 0){
 			if(flag == 1 ){
 				fprintf(f,"%d lines of none\n", counter);
 				counter = 0;
 				flag = 0;
 			}
-			fprintf(f,"%d: %s\n", i, shellmemory[i].value);
+			if(strchr(shellmemory[i].value, '\n') == NULL){
+				fprintf(f,"%d:\t\t%s\t\t\t\t%s\n", i, shellmemory[i].var,shellmemory[i].value);
+			}else{
+				fprintf(f,"%d:\t\t%s\t\t\t\t%s", i, shellmemory[i].var,shellmemory[i].value);
+			}
+			
 		}else{
 			if (flag == 0){
 				flag = 1;
 			}
 			counter++;
 		}
+	}
+
+	if(flag == 1 ){
+				fprintf(f,"%d lines of none\n", counter);
+				counter = 0;
+				flag = 0;
 	}
 
 	fclose(f);

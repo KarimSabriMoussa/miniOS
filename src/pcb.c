@@ -38,6 +38,7 @@ struct pcb* makePCB(char *script, int numlines) {
     (*p).length = numlines;
     (*p).pc = 0;
     (*p).pid = script;
+	(*p).agingScore = numlines;
 	(*p).nextPCB = NULL;
 
     return p;

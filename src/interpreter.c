@@ -414,9 +414,6 @@ int exec(char* command_args[], int args_size) {
 		pcbs[i] = makePCB(scripts[i], scriptLines[i]);
 	}
 
-	// printf("process: %s numLines: %d\n" , scripts[0], scriptLines[0]);
-	// printf("process: %s numLines: %d\n", scripts[1], scriptLines[1]);
-	// printf("process: %s numLines: %d\n", scripts[2], scriptLines[2]);
 
 	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], policy);
 

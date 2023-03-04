@@ -1,6 +1,9 @@
 *.o
 mysh
 
+# ignoring testing scripts in this directory
+src/testing/*
+
 # Created by https://www.toptal.com/developers/gitignore/api/windows,linux,macos,eclipse,clion,visualstudio,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,linux,macos,eclipse,clion,visualstudio,visualstudiocode
 

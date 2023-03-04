@@ -7,6 +7,7 @@ struct pcb
     int startPos;
     int length;
     int pc;
+    int agingScore;
     struct pcb* nextPCB;
 };
 
