@@ -12,6 +12,9 @@ struct pcb *readyQueue[QUEUE_LENGTH];
 struct pcb *head;
 int numProcesses;
 
+void printAgingScore(char *filename);
+
+
 //initialises the queue to all NULL pointers
 void initialize_ready_queue(){
     for (int i = 0; i < QUEUE_LENGTH; i++){
@@ -48,23 +51,20 @@ struct pcb* find_previous_PCB(struct pcb *p){
 void decrement_aging_score(){
 
     for(int i = 0 ; i < QUEUE_LENGTH; i++){
-        if(readyQueue[i] != NULL && readyQueue[i] != head){
+        if(readyQueue[i] != NULL && readyQueue[i] != head && (*readyQueue[i]).agingScore > 0){
             (*readyQueue[i]).agingScore--;
         }
-    }
-
+    }   
     return;
 }
 
 void shift_pcbs(){
-
     for(int i = 1; i < QUEUE_LENGTH; i++){
         readyQueue[i-1] = readyQueue[i];
         if(readyQueue[i] == NULL){
             break;
         }
     }
-    
 }
 
 void sort_pcbs_by_shortest_length(int numProcesses){
@@ -198,8 +198,6 @@ void add_pcbs_to_ready_queue_AGING(struct pcb *p1, struct pcb *p2, struct pcb *p
             readyQueue[2] = p3;
             numProcesses++;
         }
-
-        head = readyQueue[0];
     }
 
     return;
@@ -326,11 +324,17 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
     add_pcbs_to_ready_queue_AGING(p1,p2,p3);
 
+    printAgingScore("aging.txt");
+
+    sort_pcbs_by_aging_score(numProcesses);  
+    head = readyQueue[0];
+    
     while(head != NULL){
-        sort_pcbs_by_aging_score(numProcesses);
-        head = readyQueue[0];  
-        execute_script_lines_AGING(head,1);
+        execute_script_lines_AGING(head);
         decrement_aging_score();
+        printAgingScore("aging.txt");
+        sort_pcbs_by_aging_score(numProcesses);  
+        head = readyQueue[0];
     }
 
     return 0;
@@ -355,5 +359,17 @@ int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, char *policy){
     else{
         return -1;
     }
+}
+
+void printAgingScore(char *filename){
+
+	FILE *f = fopen(filename, "a");
+	fprintf(f,"-------------start---------------\n");
+    for(int i = 0 ; i < numProcesses ; i++){
+        fprintf(f,"name : %s\t\t\t\t\t score : %d \n", (*readyQueue[i]).pid, (*readyQueue[i]).agingScore); 
+    }
+     fprintf(f,"-------------end---------------\n");
+
+	fclose(f);
 }
 
