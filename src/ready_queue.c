@@ -7,7 +7,7 @@
 #include "shell.h"
 
 
-#define QUEUE_LENGTH 5
+#define QUEUE_LENGTH 10
 struct pcb *readyQueue[QUEUE_LENGTH];
 struct pcb *head;
 int numProcesses;
@@ -298,6 +298,7 @@ void execute_script_lines_AGING(struct pcb *process){
 
     //executing command at index in the shellmemory
     parseInput(mem_get_value_from_index(index));
+    
     (*process).pc++;
 
     if((*process).pc == ((*process).length)){

@@ -415,7 +415,7 @@ int exec(char* command_args[], int args_size) {
 	}
 
 
-	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], policy);
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], NULL,policy);
 
 	//printMemory("memoryLog1.txt");
 
