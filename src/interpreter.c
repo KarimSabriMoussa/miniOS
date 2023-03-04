@@ -12,6 +12,9 @@
 #include "ready_queue.h"
 
 int MAX_ARGS_SIZE = 7;
+int script_lines[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+char *scripts[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+struct pcb* pcbs[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 int badcommand(int code){
 	if(code == 1){
@@ -26,6 +29,8 @@ int badcommand(int code){
 		printf("%s\n", "Bad command: not enough space in OS shell memory");
 	} else if(code == 6){
 		printf("%s\n", "Bad command: this is not a valid policy");
+	} else if(code == 7){
+		printf("%s\n", "Bad command: same file name");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
@@ -357,36 +362,67 @@ int strcompare(char* str1, char* str2) {
 
 int exec(char* command_args[], int args_size) {
 	
-	char* policy = command_args[args_size-1];
-	int errCode = 0;
+	int bgFlag = 0;
 
-	//TODO: check if two files have the same name
+	// check background
+	if(strcmp(command_args[args_size-1], "#")==0) {
+		bgFlag = 1;
+		args_size--;
+		// create pcb3 (rest of the shell instructions)
+	}
+
+	char *policy = command_args[args_size-1];
+	int errCode = 0;
 	
+	// check policy
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
 	}
 
+	inner_exec(command_args, args_size);
 
-	char *scripts[3] = {NULL, NULL, NULL};
-	struct pcb* pcbs[3] = {NULL, NULL, NULL};
+	// call the scheduler
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], pcbs[3], policy);
 
+	//printMemory("memoryLog1.txt");
+	// shell memory cleanup
+	for(int i = 0 ; i < 10 ; i++ ){
+		if(script_lines[i] != 0) {
+			mem_clean_up(scripts[i], script_lines[i]);
+		}
+	}
+	//printMemory("memoryLog2.txt");
 
-	if (args_size > 5) {
-		return badcommand(1);
-	} else if (args_size == 5) {
-		scripts[0] = command_args[1];
-		scripts[1] = command_args[2];
-		scripts[2] = command_args[3];
+	return errCode;
+}
+
+// loads scripts into the shell memory and creates a pcb for each script
+void inner_exec(char* command_args[], int args_size) {
+
+	int inner_script_lines[4] = {0, 0, 0, 0};
+	char *inner_scripts[4] = {NULL, NULL, NULL, NULL};
+	struct pcb* inner_pcbs[4] = {NULL, NULL, NULL, NULL};
+
+	if (args_size == 5) {
+		// check if there are files with the same name
+		if (strcmp(command_args[1], command_args[2])==0 || strcmp(command_args[1], command_args[3])==0 || strcmp(command_args[2], command_args[3])==0) {
+			return badcommand(7);
+		}
+		inner_scripts[0] = command_args[1];
+		inner_scripts[1] = command_args[2];
+		inner_scripts[2] = command_args[3];
 	} else if (args_size == 4) {
-		scripts[0] = command_args[1];
-		scripts[1] = command_args[2];
-	} else if (args_size == 3) {
-		scripts[0] = command_args[1];
+		// check if there are files with the same name
+		if (strcmp(command_args[1], command_args[2])==0) {
+			return badcommand(7);
+		}
+		inner_scripts[0] = command_args[1];
+		inner_scripts[1] = command_args[2];
 	} else {
-		//error
+		inner_scripts[0] = command_args[1];
 	}
 
-
+	// make sure that files exist
 	for (int i=0; i<args_size-2; i++){
 		
 		FILE *f = fopen(scripts[i],"rt");
@@ -398,35 +434,24 @@ int exec(char* command_args[], int args_size) {
 		fclose(f);
 	}
 
-	int scriptLines[3] = {0, 0, 0};
+	// calculate total space (in lines)
 	int totalSpace = 0;
-	for (int i=0; i<args_size-2; i++){
-		scriptLines[i] = count_script_lines(scripts[i]);
-		totalSpace += scriptLines[i];
+	for (int i=0; i<10; i++){
+		inner_script_lines[i] = count_script_lines(inner_scripts[i]);
+		totalSpace += inner_script_lines[i];
 	}
-
-
+	
+	// check if there is space available in OS shell memory
 	if (mem_get_free_space() < totalSpace) {
 		return badcommand(5);
 	}
 
-	for (int i=0; i<args_size-2; i++){
-		pcbs[i] = makePCB(scripts[i], scriptLines[i]);
+	// create pcbs for each program
+	for (int i=0; i<10; i++){
+		if(inner_script_lines[i] !=0) {
+			inner_pcbs[i] = makePCB(inner_scripts[i], inner_script_lines[i]);
+		}
 	}
-
-
-	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], NULL,policy);
-
-	//printMemory("memoryLog1.txt");
-
-	for(int i = 0 ; i < args_size-2 ; i++ ){
-		// shell memory cleanup
-		mem_clean_up(scripts[i], scriptLines[i]);
-	}
-
-	//printMemory("memoryLog2.txt");
-
-	return errCode;
 }
 
 int count_script_lines(char *script) {
