@@ -107,6 +107,7 @@ void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3
     if (p1 != NULL){
         add_pcb_to_ready_queue(p1);
         numProcesses++;
+
         if (p2 != NULL){
             (*p1).nextPCB = p2;
             add_pcb_to_ready_queue(p2);
