@@ -412,7 +412,7 @@ int exec(char* command_args[], int args_size){
 	}
 
 	// check background
-	if(strcmp(command_args[args_size-1], "#")==0) {
+	if(strcmp(command_args[args_size-1], "#") == 0) {
 		background_flag = 1;
 		args_size--;
 
@@ -459,6 +459,8 @@ int exec(char* command_args[], int args_size){
 
 
 	if (mem_get_free_space() < totalSpace) {
+		//TODO: clean up background from memory
+		//TODO: free pcb
 		return badcommand(5);
 	}
 
@@ -471,7 +473,8 @@ int exec(char* command_args[], int args_size){
 	for(int i = 0 ; i < num_of_scripts; i++ ){
 		// shell memory cleanup
 		mem_clean_up(scripts[i], script_lines[i]);
-
+		num_of_scripts--;
+		
 		if(background_flag == 1){
 			mem_clean_up(background_script, background_lines);
 		}
