@@ -13,14 +13,41 @@
 
 #define MAX_ARGS_SIZE 7
 #define QUEUE_LENGTH 9
-int background_flag = 0;
+
+
 int num_of_scripts = 0;
-char *background_script = "background";
-int background_lines = 0;
-struct pcb *background_PCB = NULL;
 char *scripts[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 int script_lines[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 struct pcb* pcbs[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+
+int background_flag = 0;
+char *background_script = "background";
+int background_lines = 0;
+struct pcb *background_PCB = NULL;
+
+
+/*
+	method signatures
+*/
+
+int badcommand(int code);
+int badcommandFileDoesNotExist();
+int interpreter(char* command_args[], int args_size);
+int help();
+int quit();
+int set(char* var, char* command_args[], int args_size);
+int print(char* var);
+int echo(char* var);
+int my_mkdir(char* var);
+int my_ls();
+int run(char* script);
+int touch(char* filename);
+int cd(char* dir);
+int backgroundexec(char* command_args[], int args_size);
+int exec(char* command_args[], int args_size);
+int count_script_lines(char *script);
+int strcompare(char* str1, char* str2);
+
 
 int badcommand(int code){
 	if(code == 1){
@@ -47,22 +74,6 @@ int badcommandFileDoesNotExist(){
 	printf("%s\n", "Bad command: File not found");
 	return 3;
 }
-
-int help();
-int quit();
-int set(char* var, char* value[],int args_size);
-int print(char* var);
-int echo(char* var);
-int my_ls();
-int my_mkdir(char* var);
-int run(char* script);
-int backgroundexec(char * command_args[], int args_size);
-int exec(char * command_args[], int args_size);
-int badcommandFileDoesNotExist();
-int touch(char* filename);
-int cd(char* dir);
-int strcompare(char* str1, char* str2);
-int count_script_lines(char * script);
 
 // Interpret commands and their arguments
 int interpreter(char* command_args[], int args_size){
@@ -178,7 +189,7 @@ int echo(char* var){
 
 // creates a directory in the current directory with name var "my_mkdir"
 // checks in the memory if the given name is a variable
-int my_mkdir(char* var) {
+int my_mkdir(char* var){
 	if (var[0] == '$') {
 		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
 			if (strstr(mem_get_value(var), " ")) {
@@ -345,26 +356,6 @@ int cd(char* dir){
 	return 0;
 }
 
-// Using this method instead of strcmp to place strings that start with uppercase letters right before strings with the same letter in lowercase.
-// It compares the two strings and returns -1 if str1 should be before str2, returns 1 if str1 should be after str2, returns 0 if they are equal.
-int strcompare(char* str1, char* str2) {
-	int i = 0;
-	while (1) {
-		if (str1[i] == str2[i]) {
-			i++;
-		} else if (str1[i] < str2[i]) {
-			if(isupper(str1[i]) && islower(str2[i]) && str1[i] + 32 > str2[i]) {
-				return 1;
-			} else return -1;
-		} else {
-			if(isupper(str2[i]) && islower(str1[i]) && str2[i] + 32 > str1[i]) {
-				return -1;
-			} else return 1;
-		}
-	}
-	return 0;
-}
-
 int backgroundexec(char* command_args[], int args_size){
 
 	char* policy = command_args[args_size-1];
@@ -414,7 +405,7 @@ int backgroundexec(char* command_args[], int args_size){
 	return 0;
 }
 
-int exec(char* command_args[], int args_size) {
+int exec(char* command_args[], int args_size){
 
 	if(background_flag == 1){
 		return backgroundexec(command_args,args_size);	
@@ -489,7 +480,7 @@ int exec(char* command_args[], int args_size) {
 	return errCode;
 }
 
-int count_script_lines(char *script) {
+int count_script_lines(char *script){
 
 	if (script == NULL) {
 		return 0;
@@ -509,4 +500,24 @@ int count_script_lines(char *script) {
 
 	fclose(f);
 	return numlines;
+}
+
+// Using this method instead of strcmp to place strings that start with uppercase letters right before strings with the same letter in lowercase.
+// It compares the two strings and returns -1 if str1 should be before str2, returns 1 if str1 should be after str2, returns 0 if they are equal.
+int strcompare(char* str1, char* str2){
+	int i = 0;
+	while (1) {
+		if (str1[i] == str2[i]) {
+			i++;
+		} else if (str1[i] < str2[i]) {
+			if(isupper(str1[i]) && islower(str2[i]) && str1[i] + 32 > str2[i]) {
+				return 1;
+			} else return -1;
+		} else {
+			if(isupper(str2[i]) && islower(str1[i]) && str2[i] + 32 > str1[i]) {
+				return -1;
+			} else return 1;
+		}
+	}
+	return 0;
 }
