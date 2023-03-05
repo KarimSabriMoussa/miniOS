@@ -11,7 +11,16 @@
 #include "pcb.h"
 #include "ready_queue.h"
 
-int MAX_ARGS_SIZE = 7;
+#define MAX_ARGS_SIZE 7
+#define QUEUE_LENGTH 9
+int background_flag = 0;
+int num_of_scripts = 0;
+char *background_script = "background";
+int background_lines = 0;
+struct pcb *background_PCB = NULL;
+char *scripts[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+int script_lines[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+struct pcb* pcbs[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 int badcommand(int code){
 	if(code == 1){
@@ -47,6 +56,7 @@ int echo(char* var);
 int my_ls();
 int my_mkdir(char* var);
 int run(char* script);
+int backgroundexec(char * command_args[], int args_size);
 int exec(char * command_args[], int args_size);
 int badcommandFileDoesNotExist();
 int touch(char* filename);
@@ -112,7 +122,7 @@ int interpreter(char* command_args[], int args_size){
 		if(args_size != 2) return badcommand(0);
 		return cd(command_args[1]);		
 	} else if (strcmp(command_args[0], "exec")==0){
-		if(args_size < 3 || args_size > 5) return badcommand(0);
+		if(args_size < 3 || args_size > 7) return badcommand(0);
 		return exec(command_args, args_size);
 	} else {
 		return badcommand(0);
@@ -355,7 +365,70 @@ int strcompare(char* str1, char* str2) {
 	return 0;
 }
 
+int backgroundexec(char* command_args[], int args_size){
+
+	char* policy = command_args[args_size-1];
+	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
+		return badcommand(6);
+	}
+	if (args_size > 5 || args_size < 3) {
+		return badcommand(1);
+	}
+
+	int index_of_first_script = num_of_scripts;
+
+	for (int i = 0; i < args_size - 2; i++){
+		scripts[i+index_of_first_script] = command_args[i+1]; 
+		num_of_scripts++;
+	}
+
+	for (int i = 0; i < args_size - 2; i++){
+	
+		FILE *f = fopen(scripts[i+index_of_first_script],"rt");
+
+		if(f == NULL){
+			return badcommandFileDoesNotExist();
+		}
+		
+		fclose(f);
+	}
+
+	int totalSpace = 0;
+	for (int i = 0; i < args_size - 2; i++){
+		script_lines[i+index_of_first_script] = count_script_lines(scripts[i+index_of_first_script]);
+		totalSpace += script_lines[i+index_of_first_script];
+	}
+
+	if (mem_get_free_space() < totalSpace) {
+		return badcommand(5);
+	}
+
+	for (int i = 0; i < args_size - 2; i++){
+		pcbs[i+index_of_first_script] = makePCB(scripts[i+index_of_first_script], script_lines[i+index_of_first_script]);
+	}
+
+	for (int i = 0; i < args_size - 2; i++){
+		add_pcb_to_ready_queue(pcbs[i+index_of_first_script]);
+	}
+
+	return 0;
+}
+
 int exec(char* command_args[], int args_size) {
+
+	if(background_flag == 1){
+		return backgroundexec(command_args,args_size);	
+	}
+
+	// check background
+	if(strcmp(command_args[args_size-1], "#")==0) {
+		background_flag = 1;
+		args_size--;
+
+		background_PCB = makeBackgroundPCB(background_script);
+		background_lines = (*background_PCB).length;
+	}
+
 	
 	char* policy = command_args[args_size-1];
 	int errCode = 0;
@@ -367,25 +440,14 @@ int exec(char* command_args[], int args_size) {
 	}
 
 
-	char *scripts[3] = {NULL, NULL, NULL};
-	struct pcb* pcbs[3] = {NULL, NULL, NULL};
-
-
-	if (args_size > 5) {
+	if (args_size > 5 || args_size < 3) {
 		return badcommand(1);
-	} else if (args_size == 5) {
-		scripts[0] = command_args[1];
-		scripts[1] = command_args[2];
-		scripts[2] = command_args[3];
-	} else if (args_size == 4) {
-		scripts[0] = command_args[1];
-		scripts[1] = command_args[2];
-	} else if (args_size == 3) {
-		scripts[0] = command_args[1];
-	} else {
-		//error
 	}
-
+	
+	for (int i=0; i<args_size-2; i++){
+		scripts[i] = command_args[i+1]; 
+		num_of_scripts++;
+	}
 
 	for (int i=0; i<args_size-2; i++){
 		
@@ -396,13 +458,12 @@ int exec(char* command_args[], int args_size) {
 		}
 		
 		fclose(f);
-	}
+	}	
 
-	int scriptLines[3] = {0, 0, 0};
 	int totalSpace = 0;
 	for (int i=0; i<args_size-2; i++){
-		scriptLines[i] = count_script_lines(scripts[i]);
-		totalSpace += scriptLines[i];
+		script_lines[i] = count_script_lines(scripts[i]);
+		totalSpace += script_lines[i];
 	}
 
 
@@ -411,20 +472,19 @@ int exec(char* command_args[], int args_size) {
 	}
 
 	for (int i=0; i<args_size-2; i++){
-		pcbs[i] = makePCB(scripts[i], scriptLines[i]);
+		pcbs[i] = makePCB(scripts[i], script_lines[i]);
 	}
 
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB,policy);
 
-	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], NULL,policy);
-
-	//printMemory("memoryLog1.txt");
-
-	for(int i = 0 ; i < args_size-2 ; i++ ){
+	for(int i = 0 ; i < num_of_scripts; i++ ){
 		// shell memory cleanup
-		mem_clean_up(scripts[i], scriptLines[i]);
-	}
+		mem_clean_up(scripts[i], script_lines[i]);
 
-	//printMemory("memoryLog2.txt");
+		if(background_flag == 1){
+			mem_clean_up(background_script, background_lines);
+		}
+	}
 
 	return errCode;
 }

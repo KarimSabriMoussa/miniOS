@@ -12,5 +12,6 @@ struct pcb
 };
 
 struct pcb* makePCB(char *script, int numlines);
+struct pcb* makeBackgroundPCB(char *script); 
 
 #endif

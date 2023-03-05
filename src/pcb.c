@@ -43,3 +43,42 @@ struct pcb* makePCB(char *script, int numlines) {
 
     return p;
 }
+
+
+struct pcb* makeBackgroundPCB(char *script){
+	
+	if (script == NULL) {
+		return NULL;
+	}
+	
+    struct pcb* p = malloc(sizeof(struct pcb));
+
+    char line[1000];
+
+	// get process starting index
+	int pStart = 1000-mem_get_free_space();
+	
+	// store process in shell memory
+	int counter = 0;
+	fgets(line,999,stdin);
+	while(1){
+		char encoding[100];
+		encode(encoding, counter, script);
+		mem_set_value(encoding, line);
+		memset(line, 0, sizeof(line));
+		counter++;
+		if(feof(stdin)){
+			break;
+		}
+		fgets(line,999,stdin);
+	}
+
+    (*p).startPos = pStart;
+    (*p).length = counter;
+    (*p).pc = 0;
+    (*p).pid = script;
+	(*p).agingScore = counter;
+	(*p).nextPCB = NULL;
+
+    return p;
+}
