@@ -539,7 +539,7 @@ struct pcb *find_longest_process_less_than(int length){
     struct pcb *result = NULL;
 
     for(int  i = 0 ; i < numProcesses; i++){
-        if((*readyQueue[i]).length <= length && (result == NULL || (*readyQueue[i]).length > (*result).length)){
+        if((*readyQueue[i]).length <= length && (result == NULL || (*readyQueue[i]).length >= (*result).length)){
             result = readyQueue[i];
         }
     }

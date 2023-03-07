@@ -62,6 +62,8 @@ int badcommand(int code){
 		printf("%s\n", "Bad command: not enough space in OS shell memory");
 	} else if(code == 6){
 		printf("%s\n", "Bad command: this is not a valid policy");
+	} else if(code == 7){
+		printf("%s\n", "Bad command: same file name");
 	} else{	
 		printf("%s\n", "Unknown Command");
 	}
@@ -420,11 +422,12 @@ int exec(char* command_args[], int args_size){
 		background_lines = (*background_PCB).length;
 	}
 
+	if ((args_size - 2 == 2 && strcmp(command_args[1], command_args[2]) == 0) || (args_size - 2 == 3 && (strcmp(command_args[1], command_args[2]) == 0 || strcmp(command_args[2], command_args[3]) == 0 || strcmp(command_args[1], command_args[3]) == 0))) {
+		return badcommand(7);
+	}
 	
 	char* policy = command_args[args_size-1];
 	int errCode = 0;
-
-	//TODO: check if two files have the same name
 	
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
@@ -434,7 +437,7 @@ int exec(char* command_args[], int args_size){
 	if (args_size > 5 || args_size < 3) {
 		return badcommand(1);
 	}
-	
+
 	for (int i=0; i<args_size-2; i++){
 		scripts[i] = command_args[i+1]; 
 		num_of_scripts++;
@@ -459,8 +462,9 @@ int exec(char* command_args[], int args_size){
 
 
 	if (mem_get_free_space() < totalSpace) {
-		//TODO: clean up background from memory
-		//TODO: free pcb
+		mem_clean_up(background_script, background_lines);
+		free(background_PCB);
+		background_PCB = NULL;
 		return badcommand(5);
 	}
 
@@ -473,12 +477,12 @@ int exec(char* command_args[], int args_size){
 	for(int i = 0 ; i < num_of_scripts; i++ ){
 		// shell memory cleanup
 		mem_clean_up(scripts[i], script_lines[i]);
-		num_of_scripts--;
 		
 		if(background_flag == 1){
 			mem_clean_up(background_script, background_lines);
 		}
 	}
+	num_of_scripts = 0;
 
 	return errCode;
 }
