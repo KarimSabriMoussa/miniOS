@@ -151,6 +151,7 @@ Temporary Items
 
 ### VisualStudioCode ###
 */.vscode/*
+.vscode/*
 
 
 

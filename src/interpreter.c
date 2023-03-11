@@ -25,6 +25,8 @@ char *background_script = "background";
 int background_lines = 0;
 struct pcb *background_PCB = NULL;
 
+int multithreading_flag = 0;
+
 
 /*
 	method signatures
@@ -364,8 +366,12 @@ int backgroundexec(char* command_args[], int args_size){
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
 	}
-	if (args_size > 5 || args_size < 3) {
+	if (args_size > 6 || args_size < 3) {
 		return badcommand(1);
+	}
+
+	if(strcmp(command_args[args_size-1], "MT") == 0){
+		args_size--;
 	}
 
 	int index_of_first_script = num_of_scripts;
@@ -413,6 +419,11 @@ int exec(char* command_args[], int args_size){
 		return backgroundexec(command_args,args_size);	
 	}
 
+
+	if(strcmp(command_args[args_size-1], "MT") == 0) {
+		multithreading_flag = 1;
+		args_size--;
+	}
 	// check background
 	if(strcmp(command_args[args_size-1], "#") == 0) {
 		background_flag = 1;
@@ -472,7 +483,7 @@ int exec(char* command_args[], int args_size){
 		pcbs[i] = makePCB(scripts[i], script_lines[i]);
 	}
 
-	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB,policy);
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB, multithreading_flag ,policy);
 
 	for(int i = 0 ; i < num_of_scripts; i++ ){
 		// shell memory cleanup
@@ -482,7 +493,10 @@ int exec(char* command_args[], int args_size){
 			mem_clean_up(background_script, background_lines);
 		}
 	}
+
 	num_of_scripts = 0;
+	background_flag = 0;
+	multithreading_flag = 0;
 
 	return errCode;
 }

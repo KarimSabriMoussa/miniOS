@@ -9,6 +9,7 @@ struct pcb
     int pc;
     int agingScore;
     struct pcb* nextPCB;
+    int taken;
 };
 
 struct pcb* makePCB(char *script, int numlines);

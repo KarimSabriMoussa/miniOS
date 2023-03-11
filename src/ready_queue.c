@@ -5,19 +5,21 @@
 #include "ready_queue.h"
 #include "shellmemory.h"
 #include "shell.h"
+#include "pthread.h"
 
 
 #define QUEUE_LENGTH 10
 struct pcb *readyQueue[QUEUE_LENGTH];
 struct pcb *head;
-struct pcb *backgroundPCB;
-int numProcesses;
+struct pcb *background_pcb;
+int num_of_processes;
 char *scheduler_policy;
+pthread_mutex_t pcb_lock;
 
 /*
     method signatures
 */
-int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, char *policy);
+int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreading,char *policy);
 int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3);
@@ -45,9 +47,12 @@ struct pcb *find_previous_PCB(struct pcb *p);
 struct pcb *find_longest_process_less_than(int length);
 void decrement_aging_score();
 void shift_pcbs_left_from_index(int index);
-void sort_pcbs_by_aging_score(int numProcesses);
+void sort_pcbs_by_aging_score(int num_of_processes);
 void initialize_ready_queue();
 int get_index_of_process(struct pcb *p);
+
+void multithreading();
+void *exec_thread();
 
 
 
@@ -72,7 +77,7 @@ int add_pcb_to_ready_queue_FCFS(struct pcb *p){
     for (int i = 0; i < QUEUE_LENGTH; i++){
         if (readyQueue[i] == NULL){
             readyQueue[i] = p;
-            numProcesses++;
+            num_of_processes++;
 
             if (i > 0){
                 (*readyQueue[i - 1]).nextPCB = p;
@@ -106,10 +111,10 @@ int add_pcb_to_ready_queue_SJF(struct pcb *p){
             prevPCB = find_longest_process_less_than((*p).length);
 
             readyQueue[i] = p;
-            numProcesses++;
+            num_of_processes++;
 
             if(prevPCB == NULL){
-                if(backgroundPCB != NULL && head == backgroundPCB){
+                if(background_pcb != NULL && head == background_pcb){
                     (*p).nextPCB = (*head).nextPCB;
                     (*head).nextPCB = p;
                 }else{
@@ -142,7 +147,7 @@ int add_pcb_to_ready_queue_RR(struct pcb *p){
         if (readyQueue[i] == NULL){
 
             readyQueue[i] = p;
-            numProcesses++;
+            num_of_processes++;
 
             if (i > 0){
                 (*p).nextPCB = (*readyQueue[i - 1]).nextPCB;
@@ -169,7 +174,7 @@ int add_pcb_to_ready_queue_AGING(struct pcb *p){
         if (readyQueue[i] == NULL){
 
             readyQueue[i] = p;
-            numProcesses++;
+            num_of_processes++;
 
             return 0;
         }
@@ -202,11 +207,11 @@ int add_pcb_to_ready_queue(struct pcb *p){
 
 void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
-    numProcesses = 0;
+    num_of_processes = 0;
     head = NULL;
 
-    if (backgroundPCB != NULL){
-        add_pcb_to_ready_queue_FCFS(backgroundPCB);
+    if (background_pcb != NULL){
+        add_pcb_to_ready_queue_FCFS(background_pcb);
     }
     if (p1 != NULL){
         add_pcb_to_ready_queue_FCFS(p1);
@@ -223,11 +228,11 @@ void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3
 
 void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
-    numProcesses = 0;
+    num_of_processes = 0;
     head = NULL;
 
-    if (backgroundPCB != NULL){
-        head = backgroundPCB;
+    if (background_pcb != NULL){
+        head = background_pcb;
     }
     if (p1 != NULL){
         add_pcb_to_ready_queue_SJF(p1);
@@ -244,11 +249,11 @@ void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3)
 
 void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
-    numProcesses = 0;
+    num_of_processes = 0;
     head = NULL;
 
-    if (backgroundPCB != NULL){
-        add_pcb_to_ready_queue_RR(backgroundPCB);
+    if (background_pcb != NULL){
+        add_pcb_to_ready_queue_RR(background_pcb);
     }
     if (p1 != NULL){
         add_pcb_to_ready_queue_RR(p1);
@@ -265,11 +270,11 @@ void add_pcbs_to_ready_queue_RR(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
 void add_pcbs_to_ready_queue_AGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
-    numProcesses = 0;
+    num_of_processes = 0;
     head = NULL;
 
-    if (backgroundPCB != NULL){
-        add_pcb_to_ready_queue_AGING(backgroundPCB);
+    if (background_pcb != NULL){
+        add_pcb_to_ready_queue_AGING(background_pcb);
     }
     if (p1 != NULL){
         add_pcb_to_ready_queue_AGING(p1);
@@ -305,7 +310,7 @@ void execute_script(struct pcb *process){
         head = (*process).nextPCB;
         free(process);
         process = NULL;
-        numProcesses--;
+        num_of_processes--;
 
         if(i >= 0 && i < QUEUE_LENGTH){
             shift_pcbs_left_from_index(i);
@@ -333,7 +338,7 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
                 head = NULL;
                 free(process);
                 process = NULL;
-                numProcesses--;
+                num_of_processes--;
                 return;
             }
 
@@ -350,7 +355,7 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
             head = nextPCB;
             free(process);
             process = NULL;
-            numProcesses--;
+            num_of_processes--;
 
             if(i >= 0 && i < QUEUE_LENGTH){
                 shift_pcbs_left_from_index(i);
@@ -379,7 +384,7 @@ void execute_script_lines_AGING(struct pcb *process){
         int i = get_index_of_process(process);
         free(process);
         process = NULL;
-        numProcesses--;
+        num_of_processes--;
         if(i >= 0 && i < QUEUE_LENGTH){
             shift_pcbs_left_from_index(i);
         } 
@@ -433,50 +438,57 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
 
     add_pcbs_to_ready_queue_AGING(p1, p2, p3);
 
-    sort_pcbs_by_aging_score(numProcesses);
+    sort_pcbs_by_aging_score(num_of_processes);
     head = readyQueue[0];
 
     while (head != NULL){
         execute_script_lines_AGING(head);
         decrement_aging_score();
-        sort_pcbs_by_aging_score(numProcesses);
+        sort_pcbs_by_aging_score(num_of_processes);
         head = readyQueue[0];
     }
 
     return 0;
 }
 
-int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, char *policy){
+int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreading, char *policy){
 
     initialize_ready_queue();
     scheduler_policy = policy;
-    backgroundPCB = background;
+    background_pcb = background;
 
-    if (strcmp("FCFS", policy) == 0){
-        return scheduleFCFS(p1, p2, p3);
+    if(multithreading == 1){
+        add_pcb_to_ready_queue_RR(p1,p2,p3);
+        multithreading();
+    }else{
+        if (strcmp("FCFS", policy) == 0){
+            return scheduleFCFS(p1, p2, p3);
+        }
+        else if (strcmp("SJF", policy) == 0){
+            return scheduleSJF(p1, p2, p3);
+        }
+        else if (strcmp("RR", policy) == 0){
+            return scheduleRR(p1, p2, p3);
+        }
+        else if (strcmp("RR30", policy) == 0){
+            return scheduleRR30(p1, p2, p3);
+        }
+        else if (strcmp("AGING", policy) == 0){
+            return scheduleAGING(p1, p2, p3);
+        }
+        else{
+            return -1;
+        }
     }
-    else if (strcmp("SJF", policy) == 0){
-        return scheduleSJF(p1, p2, p3);
-    }
-    else if (strcmp("RR", policy) == 0){
-        return scheduleRR(p1, p2, p3);
-    }
-    else if (strcmp("RR30", policy) == 0){
-        return scheduleRR30(p1, p2, p3);
-    }
-    else if (strcmp("AGING", policy) == 0){
-        return scheduleAGING(p1, p2, p3);
-    }
-    else{
-        return -1;
-    }
+
+    return 0;
 }
 
 void printAgingScore(char *filename){
 
     FILE *f = fopen(filename, "a");
     fprintf(f, "-------------start---------------\n");
-    for (int i = 0; i < numProcesses; i++){
+    for (int i = 0; i < num_of_processes; i++){
         fprintf(f, "name : %s\t\t\t\t\t score : %d \n", (*readyQueue[i]).pid, (*readyQueue[i]).agingScore);
     }
     fprintf(f, "-------------end---------------\n");
@@ -488,7 +500,7 @@ void printReadyQueue(char *filename){
 
     FILE *f = fopen(filename, "w");
     
-    for (int i = 0; i < numProcesses; i++){
+    for (int i = 0; i < num_of_processes; i++){
         char *nextPCB = "null";
         if(((*readyQueue[i]).nextPCB) != NULL){
             nextPCB = (*((*readyQueue[i]).nextPCB)).pid;
@@ -538,7 +550,7 @@ struct pcb *find_longest_process_less_than(int length){
 
     struct pcb *result = NULL;
 
-    for(int  i = 0 ; i < numProcesses; i++){
+    for(int  i = 0 ; i < num_of_processes; i++){
         if((*readyQueue[i]).length <= length && (result == NULL || (*readyQueue[i]).length >= (*result).length)){
             result = readyQueue[i];
         }
@@ -547,12 +559,12 @@ struct pcb *find_longest_process_less_than(int length){
     return result;
 }
 
-void sort_pcbs_by_aging_score(int numProcesses){
+void sort_pcbs_by_aging_score(int num_of_processes){
 
     struct pcb *temp = NULL;
 
-    for (int i = 0; i < numProcesses; i++){
-        for (int j = i + 1; j < numProcesses; j++){
+    for (int i = 0; i < num_of_processes; i++){
+        for (int j = i + 1; j < num_of_processes; j++){
             if ((*readyQueue[i]).agingScore > (*readyQueue[j]).agingScore) {
                 temp = readyQueue[i];
                 readyQueue[i] = readyQueue[j];
@@ -567,11 +579,57 @@ void sort_pcbs_by_aging_score(int numProcesses){
 int get_index_of_process(struct pcb *p){
 
     
-    for(int i = 0 ; i < numProcesses; i++){
+    for(int i = 0 ; i < num_of_processes; i++){
         if(readyQueue[i] != NULL && p == readyQueue[i]){
             return i;
         }
     }
 
     return -1;
+}
+
+void multithreading(){
+
+pthread_t thread1, thread2;
+
+pthread_create(&thread1, NULL, exec_thread, NULL);
+pthread_create(&thread2, NULL, exec_thread, NULL);
+pthread_join(thread1, NULL);
+pthread_join(thread2, NULL);
+
+}
+
+void *exec_thread(){
+
+    int num_of_lines;
+
+    if(strcmp("RR", scheduler_policy) == 0){
+        num_of_lines = 2;
+    }else if(strcmp("RR30", scheduler_policy) == 0){
+        num_of_lines = 30;
+    }
+
+
+    while(head != NULL){
+
+        struct pcb *pcb_to_execute = NULL;
+
+        pthread_mutex_lock(&pcb_lock);
+        if((*head).taken == 0){
+            (*head).taken = 1;
+            pcb_to_execute = head;
+        }else{
+            if((*head).nextPCB != head && (*((*head).nextPCB)).taken == 0){
+                pcb_to_execute = (*head).nextPCB;
+            }
+        }
+        pthread_mutex_unlock(&pcb_lock);
+
+        if(pcb_to_execute != NULL){
+            execute_script_lines_RR(pcb_to_execute, num_of_lines);
+        }
+
+    }
+
+    return NULL;
 }
