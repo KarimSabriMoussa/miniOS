@@ -1,11 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 #include "pcb.h"
 #include "ready_queue.h"
 #include "shellmemory.h"
 #include "shell.h"
-#include "pthread.h"
+
 
 
 #define QUEUE_LENGTH 10
@@ -19,7 +20,7 @@ pthread_mutex_t pcb_lock;
 /*
     method signatures
 */
-int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreading,char *policy);
+int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreaded,char *policy);
 int scheduleFCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 int scheduleSJF(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 int scheduleRR(struct pcb *p1, struct pcb *p2, struct pcb *p3);
@@ -451,13 +452,13 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3){
     return 0;
 }
 
-int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreading, char *policy){
+int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *background, int multithreaded, char *policy){
 
     initialize_ready_queue();
     scheduler_policy = policy;
     background_pcb = background;
 
-    if(multithreading == 1){
+    if(multithreaded == 1){
         add_pcbs_to_ready_queue_RR(p1,p2,p3);
         multithreading();
     }else{
