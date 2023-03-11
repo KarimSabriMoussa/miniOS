@@ -458,7 +458,7 @@ int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *backgr
     background_pcb = background;
 
     if(multithreading == 1){
-        add_pcb_to_ready_queue_RR(p1,p2,p3);
+        add_pcbs_to_ready_queue_RR(p1,p2,p3);
         multithreading();
     }else{
         if (strcmp("FCFS", policy) == 0){
