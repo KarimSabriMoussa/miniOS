@@ -49,6 +49,8 @@ int backgroundexec(char* command_args[], int args_size);
 int exec(char* command_args[], int args_size);
 int count_script_lines(char *script);
 int strcompare(char* str1, char* str2);
+void clean_scripts();
+int get_background_flag();
 
 
 int badcommand(int code){
@@ -156,7 +158,15 @@ run SCRIPT.TXT\t\tExecutes the file SCRIPT.TXT\n ";
 }
 
 int quit(){
+	
 	printf("%s\n", "Bye!");
+	if(multithreading_flag == 1 && background_flag == 0){
+		join_pthreads();
+		clean_scripts();
+	}else if(multithreading_flag == 1 && background_flag == 1){
+		set_quit_flag(1);
+		return 0;
+	}
 	exit(0);
 }
 
@@ -363,15 +373,12 @@ int cd(char* dir){
 int backgroundexec(char* command_args[], int args_size){
 
 	char* policy = command_args[args_size-1];
+
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
 	}
 	if (args_size > 6 || args_size < 3) {
 		return badcommand(1);
-	}
-
-	if(strcmp(command_args[args_size-1], "MT") == 0){
-		args_size--;
 	}
 
 	int index_of_first_script = num_of_scripts;
@@ -415,15 +422,15 @@ int backgroundexec(char* command_args[], int args_size){
 
 int exec(char* command_args[], int args_size){
 
-	if(background_flag == 1){
-		return backgroundexec(command_args,args_size);	
-	}
-
-
 	if(strcmp(command_args[args_size-1], "MT") == 0) {
 		multithreading_flag = 1;
 		args_size--;
 	}
+
+	if(background_flag == 1){
+		return backgroundexec(command_args,args_size);	
+	}
+
 	// check background
 	if(strcmp(command_args[args_size-1], "#") == 0) {
 		background_flag = 1;
@@ -485,6 +492,16 @@ int exec(char* command_args[], int args_size){
 
 	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB, multithreading_flag ,policy);
 
+	if(multithreading_flag == 0){
+		clean_scripts();
+	}
+	
+	return errCode;
+}
+
+
+void clean_scripts(){
+
 	for(int i = 0 ; i < num_of_scripts; i++ ){
 		// shell memory cleanup
 		mem_clean_up(scripts[i], script_lines[i]);
@@ -497,9 +514,9 @@ int exec(char* command_args[], int args_size){
 	num_of_scripts = 0;
 	background_flag = 0;
 	multithreading_flag = 0;
-
-	return errCode;
 }
+
+
 
 int count_script_lines(char *script){
 
@@ -526,6 +543,7 @@ int count_script_lines(char *script){
 // Using this method instead of strcmp to place strings that start with uppercase letters right before strings with the same letter in lowercase.
 // It compares the two strings and returns -1 if str1 should be before str2, returns 1 if str1 should be after str2, returns 0 if they are equal.
 int strcompare(char* str1, char* str2){
+
 	int i = 0;
 	while (1) {
 		if (str1[i] == str2[i]) {
@@ -541,4 +559,8 @@ int strcompare(char* str1, char* str2){
 		}
 	}
 	return 0;
+}
+
+int get_background_flag(){
+	return background_flag;
 }

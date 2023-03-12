@@ -6,6 +6,7 @@
 #include "ready_queue.h"
 #include "shellmemory.h"
 #include "shell.h"
+#include "interpreter.h"
 
 
 
@@ -15,7 +16,13 @@ struct pcb *head;
 struct pcb *background_pcb;
 int num_of_processes;
 char *scheduler_policy;
+
+int bckgrnd_flag = 0;
+int quit_flag = 0;
+int joined_flag = 0;
+
 pthread_mutex_t pcb_lock;
+pthread_t thread1, thread2;
 
 /*
     method signatures
@@ -30,6 +37,7 @@ int scheduleAGING(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 void execute_script(struct pcb *process);
 void execute_script_lines_AGING(struct pcb *process);
 void execute_script_lines_RR(struct pcb *process, int numLinesToExecute);
+void execute_script_lines_MT(struct pcb *process, int numLinesToExecute);
 
 void add_pcbs_to_ready_queue_FCFS(struct pcb *p1, struct pcb *p2, struct pcb *p3);
 void add_pcbs_to_ready_queue_SJF(struct pcb *p1, struct pcb *p2, struct pcb *p3);
@@ -53,9 +61,9 @@ void initialize_ready_queue();
 int get_index_of_process(struct pcb *p);
 
 void multithreading();
-void *exec_thread();
-
-
+void *exec_thread(void* arg);
+void join_pthreads();
+void set_quit_flag(int value);
 
 
 // initialises the queue to all NULL pointers
@@ -458,6 +466,10 @@ int scheduler(struct pcb *p1, struct pcb *p2, struct pcb *p3, struct pcb *backgr
     scheduler_policy = policy;
     background_pcb = background;
 
+    if(background_pcb != NULL){
+        bckgrnd_flag = 1;
+    }
+
     if(multithreaded == 1){
         add_pcbs_to_ready_queue_RR(p1,p2,p3);
         multithreading();
@@ -499,14 +511,19 @@ void printAgingScore(char *filename){
 
 void printReadyQueue(char *filename){
 
-    FILE *f = fopen(filename, "w");
-    
-    for (int i = 0; i < num_of_processes; i++){
+    FILE *f = fopen(filename, "a");
+
+    fprintf(f, "=================================================================================\n");
+
+    for(int i = 0; i < num_of_processes; i++){
         char *nextPCB = "null";
         if(((*readyQueue[i]).nextPCB) != NULL){
             nextPCB = (*((*readyQueue[i]).nextPCB)).pid;
         }
         fprintf(f, "name : %s\t\t\t length: %d\t\t\t nextPCB : %s \n", (*readyQueue[i]).pid,(*readyQueue[i]).length , nextPCB);
+    }
+    if(head != NULL){
+       fprintf(f, "head : %s\n", (*head).pid);
     }
 
     fclose(f);
@@ -591,16 +608,13 @@ int get_index_of_process(struct pcb *p){
 
 void multithreading(){
 
-pthread_t thread1, thread2;
+    pthread_create(&thread1, NULL, exec_thread, "1");
+    pthread_create(&thread2, NULL, exec_thread, "2");
 
-pthread_create(&thread1, NULL, exec_thread, NULL);
-pthread_create(&thread2, NULL, exec_thread, NULL);
-pthread_join(thread1, NULL);
-pthread_join(thread2, NULL);
-
+    return;
 }
 
-void *exec_thread(){
+void *exec_thread(void *id){
 
     int num_of_lines;
 
@@ -613,24 +627,112 @@ void *exec_thread(){
 
     while(head != NULL){
 
+        pthread_mutex_lock(&pcb_lock);
         struct pcb *pcb_to_execute = NULL;
 
-        pthread_mutex_lock(&pcb_lock);
-        if((*head).taken == 0){
-            (*head).taken = 1;
+        if(head != NULL && (*head).taken == 0){
             pcb_to_execute = head;
-        }else{
-            if((*head).nextPCB != head && (*((*head).nextPCB)).taken == 0){
-                pcb_to_execute = (*head).nextPCB;
-            }
+            (*pcb_to_execute).taken = 1;
+        }else if(head != NULL && (*head).nextPCB != head && (*((*head).nextPCB)).taken == 0){
+            pcb_to_execute = (*head).nextPCB;
+            (*pcb_to_execute).taken = 1;
         }
         pthread_mutex_unlock(&pcb_lock);
 
         if(pcb_to_execute != NULL){
-            execute_script_lines_RR(pcb_to_execute, num_of_lines);
+            execute_script_lines_MT(pcb_to_execute, num_of_lines);     
+        }
+    }
+
+    
+    if(bckgrnd_flag == 1){
+        while (quit_flag != 1){
+        //busywaiting   
         }
 
+        pthread_mutex_lock(&pcb_lock);
+        if(joined_flag == 0){
+            joined_flag = 1;
+            pthread_mutex_unlock(&pcb_lock);   
+            join_pthreads();
+            clean_scripts();
+            exit(0);
+        }
+        pthread_mutex_unlock(&pcb_lock);
     }
 
     return NULL;
+}
+
+
+void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
+
+    
+
+    for (int i = 0; i < numLinesToExecute; i++) {
+
+        char *line;
+        int index = (*process).startPos + (*process).pc;
+
+        // executing command at index in the shellmemory
+        parseInput(mem_get_value_from_index(index));
+        (*process).pc++;
+
+        if ((*process).pc == ((*process).length)){
+
+            pthread_mutex_lock(&pcb_lock);    
+            // if it is the last procces in the queue, the head is set to null
+            if ((*process).nextPCB == process){
+                head = NULL;
+                free(process);
+                process = NULL;
+                num_of_processes--;
+                pthread_mutex_unlock(&pcb_lock);
+                return;
+            }
+            pthread_mutex_unlock(&pcb_lock);
+
+            /*
+            if there are more processes in the queue, the current process is removed.
+            the pcb pointing to the current proccess will instead point to what the current process's nextPCB
+            all pcbs are shifted left in the readyqueue from where the current process was removed to fill in any gaps
+            */
+            pthread_mutex_lock(&pcb_lock);  
+            int i = get_index_of_process(process);
+
+            struct pcb *previousPCB = find_previous_PCB(process);
+            struct pcb *nextPCB = (*process).nextPCB;
+            (*previousPCB).nextPCB = nextPCB;
+            head = nextPCB;
+            free(process);
+            process = NULL;
+            num_of_processes--;
+
+            if(i >= 0 && i < QUEUE_LENGTH){
+                shift_pcbs_left_from_index(i);
+            }
+            pthread_mutex_unlock(&pcb_lock); 
+           
+            return;
+        }
+    }
+
+    
+
+    (*process).taken = 0;
+
+    head = (*process).nextPCB;
+
+    return;
+}
+
+void join_pthreads(){
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+    return;
+}
+
+void set_quit_flag(int value){
+    quit_flag = value;
+    return;
 }

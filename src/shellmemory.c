@@ -134,7 +134,7 @@ char *mem_get_value_from_index(int index) {
 void encode(char *code, int counter, char *script){
 	char offset[5];
 	strcpy(code, script);
-	sprintf(offset,"%d",counter);
+	sprintf(offset,"_%d",counter);
 	strcat(code, offset);
 }
 

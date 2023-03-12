@@ -40,6 +40,7 @@ struct pcb* makePCB(char *script, int numlines) {
     (*p).pid = script;
 	(*p).agingScore = numlines;
 	(*p).nextPCB = NULL;
+	(*p).taken = 0;
 
     return p;
 }
@@ -79,6 +80,7 @@ struct pcb* makeBackgroundPCB(char *script){
     (*p).pid = script;
 	(*p).agingScore = counter;
 	(*p).nextPCB = NULL;
+	(*p).taken = 0;
 
     return p;
 }
