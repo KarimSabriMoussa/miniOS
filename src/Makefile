@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=
+CFLAGS= -lpthread -g
 
 mysh: shell.c interpreter.c shellmemory.c
 	$(CC) $(CFLAGS) -c shell.c interpreter.c shellmemory.c pcb.c ready_queue.c
