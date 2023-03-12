@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-
+/*
+	method signatures
+*/
+void encode(char *code, int counter, char *script);
 
 struct memory_struct{
 	char *var;
@@ -106,9 +109,7 @@ void mem_clear_var(char *var_in, int num) {
 void mem_clean_up(char *script, int lines) {
 	char offset[100];
 	char encoding[100];
-	strcpy(encoding, script);
-	sprintf(offset,"%d",0);
-	strcat(encoding, offset);
+	encode(encoding,0,script);
 	mem_clear_var(encoding, lines);
 	memset(encoding, 0, sizeof(encoding));
 	memset(offset, 0, sizeof(offset));
