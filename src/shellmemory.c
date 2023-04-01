@@ -1,22 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include "page_table.h"
-#include "pcb.h"
-
 
 /*
 	method signatures
 */
 void encode(char *code, int counter, char *script);
-FILE *code_loading(char *script_name);
-int virtual_to_physical_mem_address(int frame_number, int offset);
-/*
-*/
 
 struct memory_struct{
 	char *var;
@@ -60,14 +49,14 @@ void mem_init(){
 }
 
 // Set key value pair
-int mem_set_value(char *var_in, char *value_in) {
+void mem_set_value(char *var_in, char *value_in) {
 	
 	int i;
 
 	for (i=0; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
 			shellmemory[i].value = strdup(value_in);
-			return i;
+			return;
 		} 
 	}
 
@@ -76,7 +65,7 @@ int mem_set_value(char *var_in, char *value_in) {
 		if (strcmp(shellmemory[i].var, "none") == 0){
 			shellmemory[i].var = strdup(var_in);
 			shellmemory[i].value = strdup(value_in);
-			return i;
+			return;
 		} 
 	}
 
@@ -136,16 +125,6 @@ int mem_get_free_space() {
 	return 1000-i;
 }
 
-int mem_get_first_free_index() {
-	int i;
-	for (i=0; i<1000; i++){
-		if (strcmp(shellmemory[i].var, "none") == 0){
-			break;
-		} 
-	}
-	return i;
-}
-
 char *mem_get_value_from_index(int index) {
 	if(index >= 0 && index < 1000) {
 		return shellmemory[index].value;
@@ -195,95 +174,4 @@ void printMemory(char *filename){
 	}
 
 	fclose(f);
-}
-
-void remove_backing_store(){
-
-	char *dirname = "backing_store";
-
-	DIR* dir = opendir(dirname);
-
-	if(dir){
-		
-		struct dirent *entry;
-		
-		chdir(dirname);
-		while ((entry = readdir(dir)) != NULL) {
-			if (strcmp(entry->d_name, ".")!=0 && strcmp(entry->d_name, "..")!=0) {
-				remove(entry->d_name);
-			}
-		}
-		chdir("..");
-
-		rmdir(dirname);
-	}
-
-	
-}
-
-FILE *code_loading(char *script_name){
-
-	char *dirname = "backing_store";
-	int num_lines = 0;
-
-	remove_backing_store();
-	mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
-
-	FILE *f = fopen(script_name,"rt");  
-
-	char line[1000];
-
-	chdir(dirname);
-	
-	FILE *copy = fopen(script_name,"w");
-
-	fgets(line,999,f);
-
-	while(1){
-		char * token = strtok(line, ";");
-		
-		if(token == NULL){
-			fwrite(line, 1, sizeof(token), copy);
-			num_lines++;
-		}
-
-		while (token != NULL){
-        	fwrite(token, 1, sizeof(token), copy);
-        	token = strtok(NULL, ";");
-			num_lines++;
-    	}
-
-		if(feof(f)){
-			break;
-		}
-		fgets(line,999,f);
-	}
-
-	fclose(f);
-
-	return copy;
-}
-
-void  execute_line(int pc, struct pcb *p){
-
-	int page_size =  get_page_size();
-
-	int page_number = pc / page_size;
-	int offset = pc % page_size;
-
-	struct page_table *page_table = (*p).page_table;
-	int frame_number = ((*page_table).table[page_number]).frame_number;
-
-	if(frame_number == -1){
-		load_page(p,page_number);
-	}else{
-		int index = virtual_to_physical_mem_address(frame_number,offset);
-		parseInput(mem_get_value_from_index(index));
-		(*p).pc++;
-	}
-}
-
-int virtual_to_physical_mem_address(int frame_number, int offset){
-	int page_size =  get_page_size();
-	return frame_number * page_size + offset;
 }

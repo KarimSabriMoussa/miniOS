@@ -11,7 +11,6 @@
 #include "pcb.h"
 #include "ready_queue.h"
 
-
 #define MAX_ARGS_SIZE 7
 #define QUEUE_LENGTH 9
 
@@ -48,7 +47,7 @@ int touch(char* filename);
 int cd(char* dir);
 int backgroundexec(char* command_args[], int args_size);
 int exec(char* command_args[], int args_size);
-int count_script_lines(FILE *script);
+int count_script_lines(char *script);
 int strcompare(char* str1, char* str2);
 void clean_scripts();
 int get_background_flag();
@@ -273,30 +272,60 @@ int my_ls(){
 int run(char* script){
 	int errCode = 0;
 	char line[1000];
+	FILE *p = fopen(script,"rt");  // the program is in a file
 
-	FILE *f = fopen(script,"rt");  // the program is in a file
-
-	if(f == NULL){
+	if(p == NULL){
 		return badcommandFileDoesNotExist();
 	}
 
-	fclose(f);
-
-	FILE* file = code_loading(script);
-
-	int num_lines = count_script_lines(file);
-
-	struct pcb * pcb = makePCB(file,num_lines);
-	
-	while((*pcb).pc < (*pcb).length){
-		execute_line((*pcb).pc,pcb);
+	//count script lines
+	int numlines = 0;
+	while(1){
+		fgets(line,999,p);
+		numlines++;
+		if(feof(p)){
+			break;
+		}
 	}
 
-	fclose(file); 
+	int freeSpace = mem_get_free_space();
 
-	free_pcb(pcb);
+	// print error if no available space
+	if (numlines > freeSpace) {
+		return badcommand(5);
+	}
 
-	remove_backing_store();
+	// get process starting index
+	int pStart = 1000-freeSpace;
+	
+	// store process in shell memory
+	int counter = 0;
+	rewind(p);
+	fgets(line,999,p);
+	while(1){
+		char encoding[100];
+		encode(encoding, counter, script);
+		mem_set_value(encoding, line);
+		memset(line, 0, sizeof(line));
+		counter++;
+		if(feof(p)){
+			break;
+		}
+		fgets(line,999,p);
+		
+	}
+
+	// execute instructions
+	counter = 0;
+	while(counter<numlines) {
+		errCode = parseInput(mem_get_value_from_index(pStart+counter));
+		counter++;
+	}
+
+	// shell memory cleanup
+	mem_clean_up(script, numlines);
+
+    fclose(p);
 
 	return errCode;
 }
@@ -325,11 +354,6 @@ int touch(char* filename){
 
 // change directory "my_cd"
 int cd(char* dir){
-
-	if(strcmp(dir, "..") == 0){
-		chdir(dir);
-		return 0;
-	}
 
 	for(int i = 0 ; i < strlen(dir); i++){
 		if(!isalnum(dir[i])){
@@ -494,26 +518,26 @@ void clean_scripts(){
 
 
 
-int count_script_lines(FILE *script){
+int count_script_lines(char *script){
 
 	if (script == NULL) {
 		return 0;
 	}
 
+	FILE *f = fopen(script,"rt");
 	char line[1000];
-	int num_lines = 0;
+	int numlines = 0;
 
 	while(1){
-		fgets(line,999,script);
-		num_lines++;
-		if(feof(script)){
+		fgets(line,999,f);
+		numlines++;
+		if(feof(f)){
 			break;
 		}
 	}
 
-	fseek(script, 0 , SEEK_SET);
-
-	return num_lines;
+	fclose(f);
+	return numlines;
 }
 
 // Using this method instead of strcmp to place strings that start with uppercase letters right before strings with the same letter in lowercase.
