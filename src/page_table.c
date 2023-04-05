@@ -13,7 +13,7 @@ int MAX_USER_INPUT = 1000;
 struct page_table* initialise_page_table(FILE *script, int num_lines){
 
     
-    struct page_table* table = malloc(sizeof(struct page_table));
+    struct page_table* p_table = malloc(sizeof(struct page_table));
 
     int table_size = num_lines/3;
 
@@ -26,44 +26,24 @@ struct page_table* initialise_page_table(FILE *script, int num_lines){
     for(int i = 0; i < table_size; i++){
         struct page_table_entry *entry = malloc(sizeof(struct page_table_entry));
         arr[i]  = entry;
-        (*arr[i]).frame_number = -1;
-        (*arr[i]).lru_value = 0;
+        (*entry).frame_number = -1;
     }
 
-    (*table).table = arr;
-    (*table).size = table_size;
+    (*p_table).table = arr;
+    (*p_table).size = table_size;
 
-    return table;
-}
-
-void load_page(struct pcb *p, int page_number){
-
-    /*TODO : check if there is enough space to insert a new page into the frame store
-            if there isn't then evict the frame with the highest LRU value, insert the page into its place
-            update page tables of both pcbs
-    */
-
-    char line[MAX_USER_INPUT];
-
-    FILE *file = (*p).file_in_backing_store;
-
-    fseek(file, page_number * PAGE_SIZE,SEEK_SET);
-
-    for(int i = 0; i < PAGE_SIZE; i++){
-        
-        if(feof(file)){
-            break;
-        }
-        fgets(line, MAX_USER_INPUT - 1, file);
-
-        char encoding[100];
-		encode(encoding, page_number * PAGE_SIZE + i, file);
-		mem_set_value(encoding, line);
-		memset(line, 0, sizeof(line));
-    }
+    return p_table;
 }
 
 int get_page_size(){
     return PAGE_SIZE;
 }
+
+void set_page_table_entry(struct pcb *p, int page_number, int frame_number){
+    struct page_table *p_table = (*p).page_table;
+    (*p_table).table[page_number].frame_number = frame_number;
+}
+
+
+
 

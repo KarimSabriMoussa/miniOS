@@ -303,13 +303,7 @@ void execute_script(struct pcb *process){
     int numLines = (*process).length;
 
     for (int i = 0; i < numLines; i++){
-
-        char *line;
-        int index = (*process).startPos + (*process).pc;
-
-        // executing command at index in the shellmemory
-        parseInput(mem_get_value_from_index(index));
-        (*process).pc++;
+        execute_line(process);
     }
 
     if ((*process).pc == ((*process).length)){
@@ -333,12 +327,7 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
 
     for (int i = 0; i < numLinesToExecute; i++) {
 
-        char *line;
-        int index = (*process).startPos + (*process).pc;
-
-        // executing command at index in the shellmemory
-        parseInput(mem_get_value_from_index(index));
-        (*process).pc++;
+        execute_line(process);
 
         if ((*process).pc == ((*process).length)){
 
@@ -381,13 +370,7 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
 
 void execute_script_lines_AGING(struct pcb *process){
 
-    char *line;
-    int index = (*process).startPos + (*process).pc;
-
-    // executing command at index in the shellmemory
-    parseInput(mem_get_value_from_index(index));
-
-    (*process).pc++;
+    execute_line(process);
 
     if ((*process).pc == ((*process).length)) {
         int i = get_index_of_process(process);
@@ -502,7 +485,7 @@ void printAgingScore(char *filename){
     FILE *f = fopen(filename, "a");
     fprintf(f, "-------------start---------------\n");
     for (int i = 0; i < num_of_processes; i++){
-        fprintf(f, "name : %s\t\t\t\t\t score : %d \n", (*readyQueue[i]).pid, (*readyQueue[i]).agingScore);
+        fprintf(f, "name : %d\t\t\t\t\t score : %d \n", (*readyQueue[i]).file_in_backing_store, (*readyQueue[i]).agingScore);
     }
     fprintf(f, "-------------end---------------\n");
 
@@ -518,12 +501,12 @@ void printReadyQueue(char *filename){
     for(int i = 0; i < num_of_processes; i++){
         char *nextPCB = "null";
         if(((*readyQueue[i]).nextPCB) != NULL){
-            nextPCB = (*((*readyQueue[i]).nextPCB)).pid;
+            nextPCB = (*((*readyQueue[i]).nextPCB)).file_in_backing_store;
         }
-        fprintf(f, "name : %s\t\t\t length: %d\t\t\t nextPCB : %s \n", (*readyQueue[i]).pid,(*readyQueue[i]).length , nextPCB);
+        fprintf(f, "name : %d\t\t\t length: %d\t\t\t nextPCB : %s \n", (*readyQueue[i]).file_in_backing_store,(*readyQueue[i]).length , nextPCB);
     }
     if(head != NULL){
-       fprintf(f, "head : %s\n", (*head).pid);
+       fprintf(f, "head : %d\n", (*head).file_in_backing_store);
     }
 
     fclose(f);
@@ -671,12 +654,7 @@ void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
 
     for (int i = 0; i < numLinesToExecute; i++) {
 
-        char *line;
-        int index = (*process).startPos + (*process).pc;
-
-        // executing command at index in the shellmemory
-        parseInput(mem_get_value_from_index(index));
-        (*process).pc++;
+        execute_line(process);
 
         if ((*process).pc == ((*process).length)){
 

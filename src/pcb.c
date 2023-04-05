@@ -15,7 +15,7 @@ struct pcb* makePCB(FILE *script, int num_lines) {
 
 	struct page_table * page_table = initialise_page_table(script, num_lines);
 
-	for(int i = 0; i < (*page_table).size || i < 2; i++){
+	for(int i = 0; i < (*page_table).size && i < 2; i++){
         load_page(script, i);
     }
     

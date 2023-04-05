@@ -289,7 +289,7 @@ int run(char* script){
 	struct pcb * pcb = makePCB(file,num_lines);
 	
 	while((*pcb).pc < (*pcb).length){
-		execute_line((*pcb).pc,pcb);
+		execute_line(pcb);
 	}
 
 	fclose(file); 
