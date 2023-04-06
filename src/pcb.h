@@ -12,11 +12,11 @@ struct pcb
     int taken;
     FILE *file_in_backing_store;
     struct page_table *page_table;
-    
 };
 
 struct pcb* makePCB(FILE *script, int numlines);
 struct pcb* makeBackgroundPCB(char *script); 
 void free_pcb(struct pcb *p);
+void set_page_table_entry(struct pcb *p, int page_number, int frame_number);
 
 #endif

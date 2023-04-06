@@ -1,4 +1,5 @@
 #include "pcb.h"
+#include <stdio.h>
 
 
 void mem_init();
@@ -14,4 +15,5 @@ void printMemory(char *filename);
 FILE *code_loading(char *script_name);
 void remove_backing_store();
 void execute_line(struct pcb *p);
+void load_page(struct pcb *p, int page_number);
 

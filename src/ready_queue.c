@@ -485,7 +485,7 @@ void printAgingScore(char *filename){
     FILE *f = fopen(filename, "a");
     fprintf(f, "-------------start---------------\n");
     for (int i = 0; i < num_of_processes; i++){
-        fprintf(f, "name : %d\t\t\t\t\t score : %d \n", (*readyQueue[i]).file_in_backing_store, (*readyQueue[i]).agingScore);
+        fprintf(f, "name : %p\t\t\t\t\t score : %d \n", (*readyQueue[i]).file_in_backing_store, (*readyQueue[i]).agingScore);
     }
     fprintf(f, "-------------end---------------\n");
 
@@ -499,14 +499,14 @@ void printReadyQueue(char *filename){
     fprintf(f, "=================================================================================\n");
 
     for(int i = 0; i < num_of_processes; i++){
-        char *nextPCB = "null";
+        FILE *nextPCB = NULL;
         if(((*readyQueue[i]).nextPCB) != NULL){
             nextPCB = (*((*readyQueue[i]).nextPCB)).file_in_backing_store;
         }
-        fprintf(f, "name : %d\t\t\t length: %d\t\t\t nextPCB : %s \n", (*readyQueue[i]).file_in_backing_store,(*readyQueue[i]).length , nextPCB);
+        fprintf(f, "name : %p\t\t\t length: %d\t\t\t nextPCB : %p \n", (*readyQueue[i]).file_in_backing_store,(*readyQueue[i]).length , nextPCB);
     }
     if(head != NULL){
-       fprintf(f, "head : %d\n", (*head).file_in_backing_store);
+       fprintf(f, "head : %pd\n", (*head).file_in_backing_store);
     }
 
     fclose(f);

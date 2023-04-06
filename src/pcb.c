@@ -13,12 +13,7 @@ struct pcb* makePCB(FILE *script, int num_lines) {
 	
     struct pcb* p = malloc(sizeof(struct pcb));
 
-	struct page_table * page_table = initialise_page_table(script, num_lines);
-
-	for(int i = 0; i < (*page_table).size && i < 2; i++){
-        load_page(script, i);
-    }
-    
+	struct page_table *page_table = initialise_page_table(script, num_lines);    
 
     (*p).length = num_lines;
     (*p).pc = 0;
@@ -27,6 +22,10 @@ struct pcb* makePCB(FILE *script, int num_lines) {
 	(*p).taken = 0;
 	(*p).file_in_backing_store = script;
 	(*p).page_table = page_table;
+
+	for(int i = 0; i < (*page_table).size && i < 2; i++){
+        load_page(p, i);
+    }
 
     return p;
 }
@@ -73,15 +72,18 @@ struct pcb* makeBackgroundPCB(char *script){
 void free_pcb(struct pcb *p){
 
 	struct page_table *page_table = (*p).page_table;
+	struct page_table_entry *table = (*page_table).table;
 
-	for(int i = 0; i < (*page_table).size; i++){
-		struct page_table_entry entry = (*page_table).table[i];
-		free(&entry);
-	}
+	free(table);
 
 	free(page_table);
 
 	free(p);
 
 	return;
+}
+
+void set_page_table_entry(struct pcb *p, int page_number, int frame_number){
+    struct page_table *p_table = (*p).page_table;
+    (*p_table).table[page_number].frame_number = frame_number;
 }

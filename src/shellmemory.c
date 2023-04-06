@@ -8,6 +8,7 @@
 #include "page_table.h"
 #include "pcb.h"
 #include "shell.h"
+#include "interpreter.h"
 
 
 /*
@@ -16,8 +17,38 @@
 void encode(char *code, int counter, char *script);
 FILE *code_loading(char *script_name);
 int virtual_to_physical_mem_address(int frame_number, int offset);
+int match(char *model, char *var);
+char *extract(char *model);
+void mem_init();
+int mem_set_value(char *var_in, char *value_in);
+char *mem_get_value(char *var_in);
+void mem_clear_var(char *var_in, int num);
+void mem_clean_up(char *script, int lines);
+int mem_get_free_space();
+int mem_get_first_free_index();
+char *mem_get_value_by_index(int index);
+int mem_get_lru_by_index(int index);
+struct pcb *mem_get_pcb_by_index(int index);
+int mem_get_page_number_by_index(int index);
+void mem_set_value_by_index(int index, char *var, char* value);
+void mem_set_pcb_by_index(int index, struct pcb* p);
+void mem_set_lru_by_index(int index, int lru);
+void mem_set_page_number_by_index(int index, int page_number);
+void encode(char *code, int counter, char *script);
+void printMemory(char *filename);
+void remove_backing_store();
+FILE *code_loading(char *script_name);
+void load_page(struct pcb *p, int page_number);
+void execute_line(struct pcb *p);
+int virtual_to_physical_mem_address(int frame_number, int offset);
+int get_free_frame();
+void evictframe();
+void increment_lru();
+void file_seek(FILE *file, int offset);
 /*
 */
+
+
 
 struct memory_struct{
 	char *var;
@@ -28,7 +59,6 @@ struct memory_struct{
 };
 
 struct memory_struct shellmemory[1000];
-
 
 // Helper functions
 int match(char *model, char *var) {
@@ -88,7 +118,7 @@ int mem_set_value(char *var_in, char *value_in) {
 		} 
 	}
 
-	return;
+	return -1;
 
 }
 
@@ -165,48 +195,50 @@ int mem_get_lru_by_index(int index) {
 	if(index >= 0 && index < 1000) {
 		return shellmemory[index].lru;
 	}
-	return "Given index is out of bounds";
+	return -1;
 }
 
 struct pcb *mem_get_pcb_by_index(int index) {
 	if(index >= 0 && index < 1000) {
 		return shellmemory[index].pcb;
 	}
-	return "Given index is out of bounds";
+	return NULL;
 }
 
 int mem_get_page_number_by_index(int index) {
 	if(index >= 0 && index < 1000) {
 		return shellmemory[index].page_number;
 	}
-	return "Given index is out of bounds";
+	return -1;
 }
 
 void mem_set_value_by_index(int index, char *var, char* value) {
 	if(index >= 0 && index < 1000) {
-		shellmemory[index].var = var;
-		shellmemory[index].value = value;
+		shellmemory[index].var = strdup(var);
+		shellmemory[index].value = strdup(value);
 	}
-	return "Given index is out of bounds";
+	return;
 }
 
 void mem_set_pcb_by_index(int index, struct pcb* p){
 	if(index >= 0 && index < 1000) {
 		shellmemory[index].pcb = p;
 	}
-	return "Given index is out of bounds";
+	return;
 }
+
 void mem_set_lru_by_index(int index, int lru){
 	if(index >= 0 && index < 1000) {
 		shellmemory[index].lru = lru;
 	}
-	return "Given index is out of bounds";
+	return;
 }
+
 void mem_set_page_number_by_index(int index, int page_number){
 	if(index >= 0 && index < 1000) {
 		shellmemory[index].page_number = page_number;
 	}
-	return "Given index is out of bounds";
+	return;
 }
 
 void encode(char *code, int counter, char *script){
@@ -218,7 +250,7 @@ void encode(char *code, int counter, char *script){
 
 void printMemory(char *filename){
 
-	FILE *f = fopen(filename, "w");
+	FILE *f = fopen(filename, "a");
 	int counter = 0;
 	int flag = 0;
 
@@ -249,6 +281,8 @@ void printMemory(char *filename){
 				counter = 0;
 				flag = 0;
 	}
+
+	fprintf(f,"==============================================================\n");
 
 	fclose(f);
 }
@@ -291,31 +325,37 @@ FILE *code_loading(char *script_name){
 
 	chdir(dirname);
 	
-	FILE *copy = fopen(script_name,"w");
-
+	FILE *copy = fopen(script_name,"w+");
+	
 	fgets(line,999,f);
 
 	while(1){
-		char * token = strtok(line, ";");
+		char * token = NULL;
 		
 		if(token == NULL){
-			fwrite(line, 1, sizeof(token), copy);
+			fprintf(copy,"%s",line);
 			num_lines++;
 		}
 
-		while (token != NULL){
-        	fwrite(token, 1, sizeof(token), copy);
-        	token = strtok(NULL, ";");
-			num_lines++;
-    	}
+		// while (token != NULL){
+		// 	printf("%s",token);
+
+		// 	strcat(token, "\n");
+        // 	fwrite(token, 1, sizeof(token), copy);
+        // 	token = strtok(NULL, ";");
+		// 	num_lines++;
+    	// }
 
 		if(feof(f)){
 			break;
 		}
+		memset(line, 0, sizeof(line));
 		fgets(line,999,f);
 	}
 
 	fclose(f);
+
+	set_script(script_name,num_lines);
 
 	return copy;
 }
@@ -323,20 +363,21 @@ FILE *code_loading(char *script_name){
 
 void load_page(struct pcb *p, int page_number){
 
-   int frame_number = get_free_frame();
+   	int frame_number = get_free_frame();
 
-   if(frame_number = -1){
+   	if(frame_number == -1){
         evictframe();
-   }
+		frame_number = get_free_frame();
+  	}
 
-   int MAX_USER_INPUT = get_max_user_input();
-   int PAGE_SIZE = get_page_size();
+	int MAX_USER_INPUT = get_max_user_input();
+	int PAGE_SIZE = get_page_size();
 
     char line[MAX_USER_INPUT];
 
     FILE *file = (*p).file_in_backing_store;
 
-    fseek(file, page_number * PAGE_SIZE,SEEK_SET);
+    file_seek(file, page_number * PAGE_SIZE);
 
     for(int i = 0; i < PAGE_SIZE; i++){
         
@@ -346,14 +387,19 @@ void load_page(struct pcb *p, int page_number){
         fgets(line, MAX_USER_INPUT - 1, file);
 
         char encoding[100];
-		encode(encoding, page_number * PAGE_SIZE + i, file);
-		mem_set_value_by_index(page_number * 3 + i,encoding, line);
-		mem_set_lru_by_index(page_number * 3 + i, 0);
-		mem_set_page_number_by_index(page_number * 3 + i, page_number);
-		mem_set_pcb_by_index(page_number * 3 + i,p);
+		encode(encoding, frame_number * get_frame_size() + i, "");
+		mem_set_value_by_index(frame_number * get_frame_size() + i,encoding, line);
+		mem_set_lru_by_index(frame_number * get_frame_size() + i, 0);
+		mem_set_page_number_by_index(frame_number * get_frame_size() + i, page_number);
+		mem_set_pcb_by_index(frame_number * get_frame_size() + i,p);
+
+		printMemory("memory.txt");
+		
+
 		memset(line, 0, sizeof(line));
     }
-		set_page_table_entry(p, page_number, frame_number);
+
+	set_page_table_entry(p, page_number, frame_number);
 }
 
 
@@ -393,10 +439,10 @@ int get_free_frame(){
 
     int frame_store_size = get_frame_store_size();
 
-    for(int i = 0; i < frame_store_size; i += 3){
+    for(int i = 0; i < frame_store_size; i += get_frame_size()){
 
-        if(strcmp(mem_get_value_by_index(i),"none")){
-            return i/3;
+        if(strcmp(mem_get_value_by_index(i),"none") == 0){
+            return i/get_frame_size();
         }
     }
 
@@ -410,21 +456,31 @@ void evictframe(){
 
 	int largest_lru_frame_index = 0;
 
-	for(int i = 0; i < frame_store_size; i += 3){
+	for(int i = 0; i < frame_store_size; i += get_frame_size()){
 
 		if(mem_get_lru_by_index(i) > mem_get_lru_by_index(largest_lru_frame_index)){
 			largest_lru_frame_index = i;
 		}
 	}
 
-	printf("Page fault! Victim page contents:\n");
+	printf("Page fault! Victim page contents:\n\n");
 	for(int  i = 0 ; i < get_page_size(); i++){
-		printf("%s\n", mem_get_value_by_index(largest_lru_frame_index + i));
+		char * str = mem_get_value_by_index(largest_lru_frame_index + i);
+		if(strchr(str, '\n') == NULL){
+			printf("%s\n",str);
+		}else{
+			printf("%s",str);
+		}	
+			
 	}
-	printf("End of victim page contents.\n");
+	printf("\nEnd of victim page contents.\n");
 
 	struct pcb *p = mem_get_pcb_by_index(largest_lru_frame_index);
 	int page_number = mem_get_page_number_by_index(largest_lru_frame_index);
+
+	if(p == NULL){
+		puts("null pcb when evicting");
+	}
 
 	set_page_table_entry(p, page_number, -1);
 
@@ -447,3 +503,20 @@ void increment_lru(){
 		}
 	}
 }
+
+void file_seek(FILE *file, int offset){
+
+	rewind(file);
+
+	char line[1000];
+
+	for(int i = 0; i < offset ; i++){
+		if (feof(file)){
+			return;
+		}
+		fgets(line,999,file);
+	}
+
+	return;
+}
+

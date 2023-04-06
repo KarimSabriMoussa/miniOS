@@ -7,8 +7,7 @@
 #include "pcb.h"
 
 int PAGE_SIZE = 3;
-int MAX_USER_INPUT = 1000;
-
+int FRAME_SIZE = 3;
 
 struct page_table* initialise_page_table(FILE *script, int num_lines){
 
@@ -21,12 +20,10 @@ struct page_table* initialise_page_table(FILE *script, int num_lines){
         table_size++;
     }
 
-    struct page_table_entry* arr[table_size];
+    struct page_table_entry* arr = malloc(table_size * sizeof(struct page_table_entry));
 
     for(int i = 0; i < table_size; i++){
-        struct page_table_entry *entry = malloc(sizeof(struct page_table_entry));
-        arr[i]  = entry;
-        (*entry).frame_number = -1;
+        (arr[i]).frame_number = -1;
     }
 
     (*p_table).table = arr;
@@ -39,10 +36,10 @@ int get_page_size(){
     return PAGE_SIZE;
 }
 
-void set_page_table_entry(struct pcb *p, int page_number, int frame_number){
-    struct page_table *p_table = (*p).page_table;
-    (*p_table).table[page_number].frame_number = frame_number;
+int get_frame_size(){
+	return FRAME_SIZE;
 }
+
 
 
 
