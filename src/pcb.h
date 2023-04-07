@@ -15,7 +15,7 @@ struct pcb
 };
 
 struct pcb* makePCB(FILE *script, int numlines);
-struct pcb* makeBackgroundPCB(char *script); 
+struct pcb* makeBackgroundPCB(FILE *script, int num_lines);
 void free_pcb(struct pcb *p);
 void set_page_table_entry(struct pcb *p, int page_number, int frame_number);
 

@@ -54,6 +54,8 @@ void clean_scripts();
 int get_background_flag();
 void set_script(char *script_name, int num_lines);
 int get_num_lines(char* script);
+void set_background_script(char *script_name, int num_lines);
+int get_background_num_lines();
 
 
 int badcommand(int code){
@@ -183,21 +185,21 @@ int set(char* var, char* command_args[], int args_size){
 		if(i != args_size - 1)
 			strcat(value, delimeter);
 	}
-	mem_set_value(var, value);
+	mem_set_variable(var, value);
 
 	return 0;
 
 }
 
 int print(char* var){
-	printf("%s\n", mem_get_value(var)); 
+	printf("%s\n", mem_get_variable(var)); 
 	return 0;
 }
 
 int echo(char* var){
 	if (var[0] == '$') {
-		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
-			printf("%s\n", mem_get_value(var));
+		if (strcmp(mem_get_variable(++var), "Variable does not exist")!=0) {
+			printf("%s\n", mem_get_variable(var));
 		} else printf("\n");
 	} else printf("%s\n", var);
 	
@@ -208,10 +210,10 @@ int echo(char* var){
 // checks in the memory if the given name is a variable
 int my_mkdir(char* var){
 	if (var[0] == '$') {
-		if (strcmp(mem_get_value(++var), "Variable does not exist")!=0) {
-			if (strstr(mem_get_value(var), " ")) {
+		if (strcmp(mem_get_variable(++var), "Variable does not exist")!=0) {
+			if (strstr(mem_get_variable(var), " ")) {
 				badcommand(4);
-			} else mkdir(mem_get_value(var), S_IRWXU | S_IRWXG | S_IRWXO);
+			} else mkdir(mem_get_variable(var), S_IRWXU | S_IRWXG | S_IRWXO);
 		} else badcommand(4);
 	} else mkdir(var, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -284,8 +286,10 @@ int run(char* script){
 
 	fclose(f);
 
+	initialise_backing_store();
+
 	FILE* file = code_loading(script);
-	
+
 	int num_lines = get_num_lines(script);
 
 	struct pcb * pcb = makePCB(file,num_lines);
@@ -400,55 +404,59 @@ int backgroundexec(char* command_args[], int args_size){
 
 int exec(char* command_args[], int args_size){
 
-	// if(strcmp(command_args[args_size-1], "MT") == 0) {
-	// 	multithreading_flag = 1;
-	// 	args_size--;
-	// }
+	if(strcmp(command_args[args_size-1], "MT") == 0) {
+		multithreading_flag = 1;
+		args_size--;
+	}
 
-	// if(background_flag == 1){
-	// 	return backgroundexec(command_args,args_size);	
-	// }
+	if(background_flag == 1){
+		return backgroundexec(command_args,args_size);	
+	}
 
-	// // check background
-	// if(strcmp(command_args[args_size-1], "#") == 0) {
-	// 	background_flag = 1;
-	// 	args_size--;
+	// check background
+	if(strcmp(command_args[args_size-1], "#") == 0) {
+		background_flag = 1;
+		args_size--;
 
-	// 	background_PCB = makeBackgroundPCB(background_script);
-	// 	background_lines = (*background_PCB).length;
-	// }
+		FILE* background_file = background_code_loading(background_script);
+
+		int background_num_lines = get_background_num_lines();
+
+		background_PCB = makeBackgroundPCB(background_file,background_num_lines);
+		background_lines = (*background_PCB).length;
+	}
 
 	// if ((args_size - 2 == 2 && strcmp(command_args[1], command_args[2]) == 0) || (args_size - 2 == 3 && (strcmp(command_args[1], command_args[2]) == 0 || strcmp(command_args[2], command_args[3]) == 0 || strcmp(command_args[1], command_args[3]) == 0))) {
 	// 	return badcommand(7);
 	// }
 	
-	// char* policy = command_args[args_size-1];
-	// int errCode = 0;
+	char* policy = command_args[args_size-1];
+	int errCode = 0;
+	// char * arr[3] = {NULL,NULL,NULL};
+
+	// for(int i = 0; i < args_size - 2; i++){
+	// 	arr[i] = command_args[i+1]; 
+	// }
 	
-	// if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
-	// 	return badcommand(6);
-	// }
+	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
+		return badcommand(6);
+	}
 
 
-	// if (args_size > 5 || args_size < 3) {
-	// 	return badcommand(1);
-	// }
+	if (args_size > 5 || args_size < 3) {
+		return badcommand(1);
+	}
 
-	// for (int i=0; i<args_size-2; i++){
-	// 	scripts[i] = command_args[i+1]; 
-	// 	num_of_scripts++;
-	// }
-
-	// for (int i=0; i<args_size-2; i++){
+	for (int i=0; i<args_size-2; i++){
 		
-	// 	FILE *f = fopen(scripts[i],"rt");
+		FILE *f = fopen(command_args[i+1],"rt");
 
-	// 	if(f == NULL){
-	// 		return badcommandFileDoesNotExist();
-	// 	}
+		if(f == NULL){
+			return badcommandFileDoesNotExist();
+		}
 		
-	// 	fclose(f);
-	// }	
+		fclose(f);
+	}	
 
 	// int totalSpace = 0;
 	// for (int i=0; i<args_size-2; i++){
@@ -464,17 +472,40 @@ int exec(char* command_args[], int args_size){
 	// 	return badcommand(5);
 	// }
 
+	initialise_backing_store();
+
+	for (int i=0; i<args_size-2; i++){
+
+		FILE* file = code_loading(command_args[i+1]);
+
+		int num_lines = get_num_lines(scripts[i]);
+
+		pcbs[i] = makePCB(file,num_lines);
+
+		printMemory("memory.txt");
+
+	}
+
 	// for (int i=0; i<args_size-2; i++){
-	// 	pcbs[i] = makePCB(scripts[i], script_lines[i]);
+
+	// 	printf("script_name: %s, num: %d\n", scripts[i] ,script_lines[i]);
+
 	// }
 
-	// errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB, multithreading_flag ,policy);
 
-	// if(multithreading_flag == 0){
-	// 	clean_scripts();
-	// }
+
+	errCode =  scheduler(pcbs[0], pcbs[1], pcbs[2], background_PCB, multithreading_flag ,policy);
+
+	if(multithreading_flag == 0){
+
+		for(int i = 0; i < num_of_scripts; i++){
+			//fclose();
+		}
+
+		remove_backing_store();
+	}
 	
-	// return errCode;
+	return errCode;
 }
 
 
@@ -555,6 +586,12 @@ void set_script(char *script_name, int num_lines){
 	num_of_scripts++;
 }
 
+void set_background_script(char *script_name, int num_lines){
+
+	background_script = script_name;
+	background_lines = num_lines;
+}
+
 int get_num_lines(char* script){
 	for(int i = 0; i < num_of_scripts; i++){
 		if(strcmp(script, scripts[i]) == 0){
@@ -563,4 +600,8 @@ int get_num_lines(char* script){
 	}
 	
 	return -1;
+}
+
+int get_background_num_lines(){
+	return background_lines;
 }

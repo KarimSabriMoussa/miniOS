@@ -31,7 +31,8 @@ struct pcb* makePCB(FILE *script, int num_lines) {
 }
 
 
-struct pcb* makeBackgroundPCB(char *script){
+struct pcb* makeBackgroundPCB(FILE *script, int num_lines){
+
 	
 	if (script == NULL) {
 		return NULL;
@@ -39,31 +40,16 @@ struct pcb* makeBackgroundPCB(char *script){
 	
     struct pcb* p = malloc(sizeof(struct pcb));
 
-    char line[1000];
-
-	// get process starting index
-	int pStart = 1000-mem_get_free_space();
+	struct page_table *page_table = initialise_page_table(script, num_lines);   
 	
-	// store process in shell memory
-	int counter = 0;
-	fgets(line,999,stdin);
-	while(1){
-		char encoding[100];
-		encode(encoding, counter, script);
-		mem_set_value(encoding, line);
-		memset(line, 0, sizeof(line));
-		counter++;
-		if(feof(stdin)){
-			break;
-		}
-		fgets(line,999,stdin);
-	}
 
-    (*p).length = counter;
+    (*p).length = num_lines;
     (*p).pc = 0;
-	(*p).agingScore = counter;
+	(*p).agingScore = num_lines;
 	(*p).nextPCB = NULL;
 	(*p).taken = 0;
+	(*p).file_in_backing_store = script;
+	(*p).page_table = page_table;
 
     return p;
 }
@@ -85,5 +71,7 @@ void free_pcb(struct pcb *p){
 
 void set_page_table_entry(struct pcb *p, int page_number, int frame_number){
     struct page_table *p_table = (*p).page_table;
-    (*p_table).table[page_number].frame_number = frame_number;
+	struct page_table t = (*p_table) ;
+    struct page_table_entry entry = t.table[page_number];
+	entry.frame_number = frame_number;
 }

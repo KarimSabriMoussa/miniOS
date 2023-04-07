@@ -311,7 +311,7 @@ void execute_script(struct pcb *process){
         int i = get_index_of_process(process);
 
         head = (*process).nextPCB;
-        free(process);
+        free_pcb(process);
         process = NULL;
         num_of_processes--;
 
@@ -327,14 +327,18 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
 
     for (int i = 0; i < numLinesToExecute; i++) {
 
-        execute_line(process);
+        int errCode = execute_line(process);
+        
+        if(errCode == -1){
+            break;
+        }
 
         if ((*process).pc == ((*process).length)){
 
             // if it is the last procces in the queue, the head is set to null
             if ((*process).nextPCB == process){
                 head = NULL;
-                free(process);
+                free_pcb(process);
                 process = NULL;
                 num_of_processes--;
                 return;
@@ -351,7 +355,7 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
             struct pcb *nextPCB = (*process).nextPCB;
             (*previousPCB).nextPCB = nextPCB;
             head = nextPCB;
-            free(process);
+            free_pcb(process);
             process = NULL;
             num_of_processes--;
 
@@ -374,7 +378,7 @@ void execute_script_lines_AGING(struct pcb *process){
 
     if ((*process).pc == ((*process).length)) {
         int i = get_index_of_process(process);
-        free(process);
+        free_pcb(process);
         process = NULL;
         num_of_processes--;
         if(i >= 0 && i < QUEUE_LENGTH){
@@ -662,7 +666,7 @@ void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
             // if it is the last procces in the queue, the head is set to null
             if ((*process).nextPCB == process){
                 head = NULL;
-                free(process);
+                free_pcb(process);
                 process = NULL;
                 num_of_processes--;
                 pthread_mutex_unlock(&pcb_lock);
@@ -682,7 +686,7 @@ void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
             struct pcb *nextPCB = (*process).nextPCB;
             (*previousPCB).nextPCB = nextPCB;
             head = nextPCB;
-            free(process);
+            free_pcb(process);
             process = NULL;
             num_of_processes--;
 

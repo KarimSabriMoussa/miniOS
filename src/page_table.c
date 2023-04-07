@@ -8,7 +8,7 @@
 
 int PAGE_SIZE = 3;
 int FRAME_SIZE = 3;
-
+ 
 struct page_table* initialise_page_table(FILE *script, int num_lines){
 
     

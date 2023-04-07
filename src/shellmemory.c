@@ -20,8 +20,8 @@ int virtual_to_physical_mem_address(int frame_number, int offset);
 int match(char *model, char *var);
 char *extract(char *model);
 void mem_init();
-int mem_set_value(char *var_in, char *value_in);
-char *mem_get_value(char *var_in);
+int mem_set_variable(char *var_in, char *value_in);
+char *mem_get_variable(char *var_in);
 void mem_clear_var(char *var_in, int num);
 void mem_clean_up(char *script, int lines);
 int mem_get_free_space();
@@ -38,13 +38,15 @@ void encode(char *code, int counter, char *script);
 void printMemory(char *filename);
 void remove_backing_store();
 FILE *code_loading(char *script_name);
+FILE *background_code_loading(char *script_name);
 void load_page(struct pcb *p, int page_number);
-void execute_line(struct pcb *p);
+int execute_line(struct pcb *p);
 int virtual_to_physical_mem_address(int frame_number, int offset);
 int get_free_frame();
 void evictframe();
 void increment_lru();
 void file_seek(FILE *file, int offset);
+void initialise_backing_store();
 /*
 */
 
@@ -98,11 +100,13 @@ void mem_init(){
 }
 
 // Set key value pair
-int mem_set_value(char *var_in, char *value_in) {
+int mem_set_variable(char *var_in, char *value_in) {
 	
 	int i;
 
-	for (i=0; i<1000; i++){
+	int var_store_start = 1000-get_variable_store_size();
+
+	for(i=var_store_start; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
 			shellmemory[i].value = strdup(value_in);
 			return i;
@@ -110,7 +114,7 @@ int mem_set_value(char *var_in, char *value_in) {
 	}
 
 	//Value does not exist, need to find a free spot.
-	for (i=0; i<1000; i++){
+	for (i=var_store_start; i<1000; i++){
 		if (strcmp(shellmemory[i].var, "none") == 0){
 			shellmemory[i].var = strdup(var_in);
 			shellmemory[i].value = strdup(value_in);
@@ -123,10 +127,12 @@ int mem_set_value(char *var_in, char *value_in) {
 }
 
 //get value based on input key
-char *mem_get_value(char *var_in) {
+char *mem_get_variable(char *var_in) {
 	int i;
 
-	for (i=0; i<1000; i++){
+	int var_store_start = 1000-get_variable_store_size();
+
+	for (i=var_store_start; i<1000; i++){
 		if (strcmp(shellmemory[i].var, var_in) == 0){
 
 			return strdup(shellmemory[i].value);
@@ -311,13 +317,19 @@ void remove_backing_store(){
 	
 }
 
-FILE *code_loading(char *script_name){
-
+void initialise_backing_store(){
 	char *dirname = "backing_store";
-	int num_lines = 0;
 
 	remove_backing_store();
 	mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
+}
+
+
+FILE *code_loading(char *script_name){
+
+	char *dirname = "backing_store";
+
+	int num_lines = 0;
 
 	FILE *f = fopen(script_name,"rt");  
 
@@ -330,21 +342,18 @@ FILE *code_loading(char *script_name){
 	fgets(line,999,f);
 
 	while(1){
-		char * token = NULL;
+		char *token = strtok(line,";");
 		
-		if(token == NULL){
-			fprintf(copy,"%s",line);
+		while (token != NULL){
+			
+			if(strchr(token, '\n') == NULL){
+				fprintf(copy,"%s\n",token);
+			}else{
+				fprintf(copy,"%s", token);
+			}
+			token = strtok(NULL, ";");
 			num_lines++;
-		}
-
-		// while (token != NULL){
-		// 	printf("%s",token);
-
-		// 	strcat(token, "\n");
-        // 	fwrite(token, 1, sizeof(token), copy);
-        // 	token = strtok(NULL, ";");
-		// 	num_lines++;
-    	// }
+    	}
 
 		if(feof(f)){
 			break;
@@ -356,6 +365,50 @@ FILE *code_loading(char *script_name){
 	fclose(f);
 
 	set_script(script_name,num_lines);
+
+	chdir("..");
+
+	return copy;
+}
+
+FILE *background_code_loading(char *script_name){
+
+	char *dirname = "backing_store";
+
+	int num_lines = 0;
+
+	char line[1000];
+
+	chdir(dirname);
+	
+	FILE *copy = fopen(script_name,"w+");
+	
+	fgets(line,999,stdin);
+
+	while(1){
+		char *token = strtok(line,";");
+		
+		while (token != NULL){
+			
+			if(strchr(token, '\n') == NULL){
+				fprintf(copy,"%s\n",token);
+			}else{
+				fprintf(copy,"%s", token);
+			}
+			token = strtok(NULL, ";");
+			num_lines++;
+    	}
+
+		if(feof(stdin)){
+			break;
+		}
+		memset(line, 0, sizeof(line));
+		fgets(line,999,stdin);
+	}
+
+	set_background_script(script_name,num_lines);
+
+	chdir("..");
 
 	return copy;
 }
@@ -391,10 +444,7 @@ void load_page(struct pcb *p, int page_number){
 		mem_set_value_by_index(frame_number * get_frame_size() + i,encoding, line);
 		mem_set_lru_by_index(frame_number * get_frame_size() + i, 0);
 		mem_set_page_number_by_index(frame_number * get_frame_size() + i, page_number);
-		mem_set_pcb_by_index(frame_number * get_frame_size() + i,p);
-
-		printMemory("memory.txt");
-		
+		mem_set_pcb_by_index(frame_number * get_frame_size() + i,p);		
 
 		memset(line, 0, sizeof(line));
     }
@@ -403,7 +453,7 @@ void load_page(struct pcb *p, int page_number){
 }
 
 
-void execute_line(struct pcb *p){
+int execute_line(struct pcb *p){
 
 	int page_size =  get_page_size();
 
@@ -417,6 +467,7 @@ void execute_line(struct pcb *p){
 
 	if(frame_number == -1){
 		load_page(p,page_number);
+		return -1;
 	}else{
 		int index = virtual_to_physical_mem_address(frame_number,offset);
 		parseInput(mem_get_value_by_index(index));
@@ -428,6 +479,8 @@ void execute_line(struct pcb *p){
 			mem_set_lru_by_index(frame_number*page_size+i, 0);
 		}
 	}
+
+	return 0;
 }
 
 int virtual_to_physical_mem_address(int frame_number, int offset){
