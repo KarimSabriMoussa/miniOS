@@ -425,18 +425,9 @@ int exec(char* command_args[], int args_size){
 		background_PCB = makeBackgroundPCB(background_file,background_num_lines);
 		background_lines = (*background_PCB).length;
 	}
-
-	// if ((args_size - 2 == 2 && strcmp(command_args[1], command_args[2]) == 0) || (args_size - 2 == 3 && (strcmp(command_args[1], command_args[2]) == 0 || strcmp(command_args[2], command_args[3]) == 0 || strcmp(command_args[1], command_args[3]) == 0))) {
-	// 	return badcommand(7);
-	// }
 	
 	char* policy = command_args[args_size-1];
 	int errCode = 0;
-	// char * arr[3] = {NULL,NULL,NULL};
-
-	// for(int i = 0; i < args_size - 2; i++){
-	// 	arr[i] = command_args[i+1]; 
-	// }
 	
 	if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 && strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 && strcmp(policy, "AGING") != 0 ) {
 		return badcommand(6);
@@ -458,20 +449,6 @@ int exec(char* command_args[], int args_size){
 		fclose(f);
 	}	
 
-	// int totalSpace = 0;
-	// for (int i=0; i<args_size-2; i++){
-	// 	script_lines[i] = count_script_lines(scripts[i]);
-	// 	totalSpace += script_lines[i];
-	// }
-
-
-	// if (mem_get_free_space() < totalSpace) {
-	// 	mem_clean_up(background_script, background_lines);
-	// 	free(background_PCB);
-	// 	background_PCB = NULL;
-	// 	return badcommand(5);
-	// }
-
 	initialise_backing_store();
 
 	for (int i=0; i<args_size-2; i++){
@@ -482,15 +459,8 @@ int exec(char* command_args[], int args_size){
 
 		pcbs[i] = makePCB(file,num_lines);
 
-		printMemory("memory.txt");
-
 	}
 
-	// for (int i=0; i<args_size-2; i++){
-
-	// 	printf("script_name: %s, num: %d\n", scripts[i] ,script_lines[i]);
-
-	// }
 
 
 
@@ -499,7 +469,9 @@ int exec(char* command_args[], int args_size){
 	if(multithreading_flag == 0){
 
 		for(int i = 0; i < num_of_scripts; i++){
-			//fclose();
+			FILE *f = pcbs[i]->file_in_backing_store;
+			fclose(f);
+			free(pcbs[i]);
 		}
 
 		remove_backing_store();

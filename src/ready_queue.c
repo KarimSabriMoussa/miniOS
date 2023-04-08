@@ -311,8 +311,6 @@ void execute_script(struct pcb *process){
         int i = get_index_of_process(process);
 
         head = (*process).nextPCB;
-        free_pcb(process);
-        process = NULL;
         num_of_processes--;
 
         if(i >= 0 && i < QUEUE_LENGTH){
@@ -338,8 +336,6 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
             // if it is the last procces in the queue, the head is set to null
             if ((*process).nextPCB == process){
                 head = NULL;
-                free_pcb(process);
-                process = NULL;
                 num_of_processes--;
                 return;
             }
@@ -355,8 +351,6 @@ void execute_script_lines_RR(struct pcb *process, int numLinesToExecute){
             struct pcb *nextPCB = (*process).nextPCB;
             (*previousPCB).nextPCB = nextPCB;
             head = nextPCB;
-            free_pcb(process);
-            process = NULL;
             num_of_processes--;
 
             if(i >= 0 && i < QUEUE_LENGTH){
@@ -378,8 +372,6 @@ void execute_script_lines_AGING(struct pcb *process){
 
     if ((*process).pc == ((*process).length)) {
         int i = get_index_of_process(process);
-        free_pcb(process);
-        process = NULL;
         num_of_processes--;
         if(i >= 0 && i < QUEUE_LENGTH){
             shift_pcbs_left_from_index(i);
@@ -666,8 +658,6 @@ void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
             // if it is the last procces in the queue, the head is set to null
             if ((*process).nextPCB == process){
                 head = NULL;
-                free_pcb(process);
-                process = NULL;
                 num_of_processes--;
                 pthread_mutex_unlock(&pcb_lock);
                 return;
@@ -686,8 +676,6 @@ void execute_script_lines_MT(struct pcb *process, int numLinesToExecute){
             struct pcb *nextPCB = (*process).nextPCB;
             (*previousPCB).nextPCB = nextPCB;
             head = nextPCB;
-            free_pcb(process);
-            process = NULL;
             num_of_processes--;
 
             if(i >= 0 && i < QUEUE_LENGTH){

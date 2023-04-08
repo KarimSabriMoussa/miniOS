@@ -61,17 +61,18 @@ void free_pcb(struct pcb *p){
 	struct page_table_entry *table = (*page_table).table;
 
 	free(table);
+	table = NULL;
 
 	free(page_table);
+	page_table = NULL;
 
 	free(p);
+	p = NULL;
 
 	return;
 }
 
 void set_page_table_entry(struct pcb *p, int page_number, int frame_number){
     struct page_table *p_table = (*p).page_table;
-	struct page_table t = (*p_table) ;
-    struct page_table_entry entry = t.table[page_number];
-	entry.frame_number = frame_number;
+	(*p_table).table[page_number].frame_number = frame_number;
 }

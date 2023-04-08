@@ -531,10 +531,6 @@ void evictframe(){
 	struct pcb *p = mem_get_pcb_by_index(largest_lru_frame_index);
 	int page_number = mem_get_page_number_by_index(largest_lru_frame_index);
 
-	if(p == NULL){
-		puts("null pcb when evicting");
-	}
-
 	set_page_table_entry(p, page_number, -1);
 
 
