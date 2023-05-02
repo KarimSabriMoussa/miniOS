@@ -12,6 +12,8 @@ int parseInput(char ui[]);
 int main(int argc, char *argv[]) {
 	printf("%s\n\n", "Shell version 1.2 Created January 2023");
 
+    help();
+
 	char prompt = '$';  				// Shell prompt
 	char userInput[MAX_USER_INPUT];		// user's input stored here
 	int errorCode = 0;					// zero means no error, default
