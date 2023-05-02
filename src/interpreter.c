@@ -471,7 +471,7 @@ int exec(char* command_args[], int args_size){
 		for(int i = 0; i < num_of_scripts; i++){
 			FILE *f = pcbs[i]->file_in_backing_store;
 			fclose(f);
-			free(pcbs[i]);
+			free_pcb(pcbs[i]);
 		}
 
 		remove_backing_store();
